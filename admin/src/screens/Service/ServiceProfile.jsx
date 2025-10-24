@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import { useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
 
 const ServiceProfile = () => {
   const [formData, setFormData] = useState({
@@ -55,8 +56,6 @@ const ServiceProfile = () => {
     "Salesforce",
   ];
 
-  const experienceRanges = ["3-5 years", "6-10 years", "10+ years"];
-
   const handleInputChange = (section, field, value, index = null) => {
     if (index !== null) {
       const updatedArray = [...formData[section]];
@@ -97,7 +96,64 @@ const ServiceProfile = () => {
     }
   };
 
+  const { id } = useParams();
+
+  useEffect(() => {
+    if (id) {
+      fetch(`http://localhost:5001/api/v1/admin/service-profiles/${id}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success) {
+            const profile = data.data;
+            setFormData({
+              ...formData,
+              ...profile,
+              deliverables: Array.isArray(profile.deliverables)
+                ? profile.deliverables
+                : JSON.parse(profile.deliverables || "[]"),
+              processSteps: Array.isArray(profile.processSteps)
+                ? profile.processSteps
+                : JSON.parse(profile.processSteps || "[]"),
+              promises: Array.isArray(profile.promises)
+                ? profile.promises
+                : JSON.parse(profile.promises || "[]"),
+              faqs: Array.isArray(profile.faqs)
+                ? profile.faqs
+                : JSON.parse(profile.faqs || "[]"),
+            });
+          }
+        });
+    }
+  }, [id]);
+
   const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    const formDataToSend = new FormData();
+
+    Object.entries(formData).forEach(([key, value]) => {
+      if (Array.isArray(value) || typeof value === "object") {
+        formDataToSend.append(key, JSON.stringify(value));
+      } else {
+        formDataToSend.append(key, value);
+      }
+    });
+
+    if (formData.profileImage) {
+      formDataToSend.append("profileImage", formData.profileImage); // ✅ file included
+    }
+
+    const method = id ? "PUT" : "POST";
+    const url = id
+      ? `http://localhost:5001/api/v1/admin/service-profiles/${id}`
+      : "http://localhost:5001/api/v1/admin/service-profiles";
+
+    const res = await fetch(url, { method, body: formDataToSend });
+    const result = await res.json();
+    console.log(result);
+  };
+
+  const handleSubmits = async (e) => {
     e.preventDefault();
 
     const formDataToSend = new FormData();
@@ -125,13 +181,10 @@ const ServiceProfile = () => {
     }
 
     try {
-      const response = await fetch(
-        "http://localhost:5000/api/service-profiles",
-        {
-          method: "POST",
-          body: formDataToSend,
-        }
-      );
+      const response = await fetch("http://localhost:5001/service-profiles", {
+        method: "POST",
+        body: formDataToSend,
+      });
 
       const result = await response.json();
 
@@ -200,23 +253,18 @@ const ServiceProfile = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700">
-                  Experience Range
+                  Experience
                 </label>
-                <select
+                <input
+                  type="number"
                   value={formData.experienceRange}
                   onChange={(e) =>
                     handleInputChange(null, "experienceRange", e.target.value)
                   }
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                  placeholder="e.g., 1 "
                   required
-                >
-                  <option value="">Select Experience</option>
-                  {experienceRanges.map((range) => (
-                    <option key={range} value={range}>
-                      {range}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
 
               <div>
@@ -662,7 +710,7 @@ const ServiceProfile = () => {
               type="submit"
               className="bg-blue-600 text-white px-6 py-2 rounded-md shadow hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              Create Service Profile
+              {id ? "Update Service Profile" : "Create Service Profile"}
             </button>
           </div>
         </form>

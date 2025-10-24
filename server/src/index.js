@@ -1,20 +1,23 @@
-const server = require("express");
+const express = require("express");
 const cors = require("cors");
 const errorHandler = require("./middleware/errorHandler");
 const registerRoutes = require("./routes/indexRoutes");
-const db = require("./config/dbconfig");
+const path = require("path");
 
 // initialize server
-const app = server();
-app.use(server.json());
-//cors middleware
+const app = express();
+
+app.use(express.json());
 app.use(cors());
 
-//Register routes
+// ✅ Correct static route
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+// Register routes
 registerRoutes(app);
 
-//Error handler
+// Error handler
 app.use(errorHandler);
 
 // Start server
-app.listen(5000, () => console.log("Server running on port 5000"));
+app.listen(5001, () => console.log("✅ Server running on port 5001"));

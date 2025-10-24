@@ -23,6 +23,7 @@ const dbconfig = new Sequelize(
     },
   }
 );
+
 //DB Authentication and sync
 dbconfig
   .authenticate()
