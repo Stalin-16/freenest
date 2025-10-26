@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:freenest/screens/views/cart_screen.dart';
-import 'package:freenest/screens/views/home_screen.dart';
+import 'package:freenest/screens/views/home/home_screen.dart';
 import 'package:freenest/screens/views/order_screen.dart';
 import 'package:freenest/screens/views/profile_screen.dart';
 import 'package:freenest/service/cart_service.dart';

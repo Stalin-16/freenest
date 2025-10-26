@@ -68,15 +68,16 @@ class ApiBaseHelper {
   }
 
   Future<dynamic> get(String url) async {
-    //debugPrint('Api Get, url $_baseUrl$url');
+    debugPrint('Api Get, url $_baseUrl$url');
     //  var token = await SharedService.getToken();
-    TokenModel? token = await SharedService.getToken();
-    if (token == null) {
-      SharedService.logggedOutWithOutContext();
-    }
+    // TokenModel? token = await SharedService.getToken();
+    // if (token == null) {
+    //   SharedService.logggedOutWithOutContext();
+    // }
 
     Map<String, String> requestHeader = {
-      HttpHeaders.authorizationHeader: 'Bearer ${token!.accessToken!}'
+      // HttpHeaders.authorizationHeader: 'Bearer ${token!.accessToken!}'
+      HttpHeaders.authorizationHeader: 'Bearer '
     };
     //debugPrint("the token is the ::::::::::::::    ${token.toString()}");
     dynamic responseJson;

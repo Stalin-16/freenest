@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:freenest/screens/home_page.dart';
-import 'package:freenest/screens/login_screen.dart';
 
 void main() {
   runApp(const MyApp());

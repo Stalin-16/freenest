@@ -4,15 +4,14 @@ import 'package:freenest/model/common_reponse.dart';
 import 'package:freenest/networking/api_base_helper.dart';
 import 'package:http/http.dart' as http;
 
-const baseUrl = 'http://YOUR_SERVER_IP:5000/api';
+const baseUrl = AppConfig.baseUrl;
 
 class AuthService {
   final ApiBaseHelper _helper = ApiBaseHelper();
   Future<Map<String, dynamic>> sendOtp(String email) async {
-    final res = await http.post(
-      Uri.parse('$baseUrl/send-otp'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'email': email}),
+    final res = await _helper.post(
+      "/send-otp",
+      jsonEncode({'email': email}),
     );
     return jsonDecode(res.body);
   }
@@ -26,17 +25,14 @@ class AuthService {
     return jsonDecode(res.body);
   }
 
-  Future<CommonResponseModel> googleLogin(String email, String googleId,String? name) async {
+  Future<CommonResponseModel> googleLogin(
+      String email, String googleId, String? name) async {
     try {
       final res = await _helper.postWithoutToken(
         "${AppConfig.oauthAPI}/google-login",
-        {
-          "email": email,
-          "googleId": googleId,
-          "user_name":name
-        },
+        {"email": email, "googleId": googleId, "user_name": name},
       );
-     return CommonResponseModel.fromJson(res);
+      return CommonResponseModel.fromJson(res);
     } catch (e) {
       throw Exception("Google login failed: $e");
     }
