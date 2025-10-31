@@ -7,17 +7,28 @@ void main() {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
-  
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Freenest',
-        debugShowCheckedModeBanner: false,
+      title: 'Chennai FreeLancers',
+      debugShowCheckedModeBanner: false,
+      themeMode: ThemeMode.system,
       theme: ThemeData(
-        primarySwatch: Colors.indigo,
-        scaffoldBackgroundColor: Colors.grey[100],
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xfffebd55),
+          brightness: Brightness.light,
+        ),
+        brightness: Brightness.light,
       ),
-      home:  const HomePage(),
+      darkTheme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xfffebd55),
+          brightness: Brightness.dark,
+        ),
+        brightness: Brightness.dark,
+      ),
+      home: const HomePage(),
     );
   }
 }

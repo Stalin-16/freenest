@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:freenest/screens/views/cart_screen.dart';
+import 'package:freenest/screens/views/order/cart_screen.dart';
 import 'package:freenest/screens/views/home/home_screen.dart';
-import 'package:freenest/screens/views/order_screen.dart';
-import 'package:freenest/screens/views/profile_screen.dart';
+import 'package:freenest/screens/views/order/order_screen.dart';
+import 'package:freenest/screens/views/profile/profile_screen.dart';
 import 'package:freenest/service/cart_service.dart';
 
 class HomePage extends StatefulWidget {
@@ -21,12 +21,12 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    _loadCartCount();
     _screens.addAll([
       HomeScreen(),
       OrderScreen(),
       ProfileScreen(),
     ]);
-    _loadCartCount();
   }
 
   void _onItemTapped(int index) {
@@ -46,7 +46,7 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         title: Text(
           _selectedIndex == 0
-              ? "Home"
+              ? ""
               : _selectedIndex == 1
                   ? "Orders"
                   : "Profile",

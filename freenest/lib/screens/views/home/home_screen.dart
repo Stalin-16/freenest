@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:freenest/config/app_config.dart';
-import 'package:freenest/model/profile_mode.dart';
 import 'package:freenest/model/profile_name.dart';
-import 'package:freenest/screens/views/profile_details_screen.dart';
+import 'package:freenest/screens/views/home/profile_details_screen.dart';
 import 'package:freenest/service/profile_service.dart';
 import 'package:freenest/widgets/service_card.dart';
-import 'package:carousel_slider/carousel_slider.dart';
+// import 'package:carousel_slider/carousel_slider.dart'
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -13,7 +12,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final String? userName = '';
+  final String? userName = "Stalin"; // Example name (replace dynamically later)
   final ProfileService _profileService = ProfileService();
   final TextEditingController _searchController = TextEditingController();
 
@@ -28,35 +27,28 @@ class _HomeScreenState extends State<HomeScreen> {
     _searchController.addListener(_onSearchChanged);
   }
 
- Future<void> _loadProfiles() async {
-  setState(() => _isLoading = true);
-
-  try {
-    final List<ProfileList> profiles = await _profileService.getAllProfiles();
-
-    print("Profiles Loaded: ${profiles.length}");
-
-    setState(() {
-      _profiles = profiles
-          .map((p) => {
-                'id': p.id.toString(),
-                'title': p.serviceTitle,
-                'img': p.profileImage != null && p.profileImage!.isNotEmpty
-                    ? "${AppConfig.baseUrl}${p.profileImage}"
-                    : "https://cdn-icons-png.flaticon.com/512/1946/1946429.png",
-              })
-          .toList();
-
-      _filteredProfiles = _profiles;
-      _isLoading = false;
-    });
-  } catch (e) {
-    print("Error loading profiles: $e");
-    setState(() {
-      _isLoading = false;
-    });
+  Future<void> _loadProfiles() async {
+    setState(() => _isLoading = true);
+    try {
+      final List<ProfileList> profiles = await _profileService.getAllProfiles();
+      setState(() {
+        _profiles = profiles
+            .map((p) => {
+                  'id': p.id.toString(),
+                  'title': p.serviceTitle,
+                  'img': p.profileImage != null && p.profileImage!.isNotEmpty
+                      ? "${AppConfig.imageUrl}${p.profileImage}"
+                      : "https://cdn-icons-png.flaticon.com/512/1946/1946429.png",
+                })
+            .toList();
+        _filteredProfiles = _profiles;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print("Error loading profiles: $e");
+      setState(() => _isLoading = false);
+    }
   }
-}
 
   void _onSearchChanged() {
     String query = _searchController.text.toLowerCase();
@@ -75,11 +67,39 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     double screenWidth = MediaQuery.of(context).size.width;
     int crossAxisCount = screenWidth < 600 ? 3 : 5;
 
-    return SingleChildScrollView(
-      child: Padding(
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      // appBar: AppBar(
+        // backgroundColor: Colors.white,
+        // title: Row(
+        //   children: [
+        //     const Icon(Icons.person, color: Colors.white),
+        //     const SizedBox(width: 10),
+        //     Text(
+        //       "Welcome, ${userName ?? 'User'} ",
+        //       style:  TextStyle(color:  theme.brightness == Brightness.dark ? Colors.black : Colors.black),
+        //     ),
+        //   ],
+        // ),
+      //   actions: [
+      //     IconButton(
+      //       icon: Icon(
+      //         theme.brightness == Brightness.dark
+      //             ? Icons.light_mode
+      //             : Icons.dark_mode,
+      //         color: Colors.white,
+      //       ),
+      //       onPressed: () {
+      //         // Optional: Implement theme toggle using provider or Bloc later
+      //       },
+      //     ),
+      //   ],
+      // ),
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(12.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -91,7 +111,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 hintText: "Search for services...",
                 prefixIcon: const Icon(Icons.search),
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: theme.inputDecorationTheme.fillColor ??
+                    (theme.brightness == Brightness.dark
+                        ? Colors.grey[900]
+                        : Colors.white),
                 contentPadding:
                     const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
                 border: OutlineInputBorder(
@@ -101,9 +124,11 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               "Popular Services",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
             ),
             const SizedBox(height: 12),
             if (_isLoading)
@@ -126,9 +151,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => ProfileDetailsPage(
-                            profileId: item['id'],
-                          ),
+                          builder: (context) =>
+                              ProfileDetailsPage(profileId: item['id']),
                         ),
                       );
                     },
@@ -153,134 +177,3 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
-
-
-//   @override
-//   Widget build(BuildContext context) {
-//     double screenWidth = MediaQuery.of(context).size.width;
-//     int crossAxisCount = screenWidth < 600 ? 3 : 5;
-//     return SingleChildScrollView(
-//       child: Column(
-//         crossAxisAlignment: CrossAxisAlignment.start,
-//         children: [
-//           const SizedBox(height: 10),
-//           if (userName != null && userName!.isNotEmpty) ...[
-//             Text(
-//               "Hi $userName",
-//               style: const TextStyle(
-//                 fontSize: 22,
-//                 fontWeight: FontWeight.bold,
-//               ),
-//             ),
-//             const SizedBox(height: 6),
-//             const Text(
-//               "What service do you need today?",
-//               style: TextStyle(fontSize: 16, color: Colors.black54),
-//             ),
-//             const SizedBox(height: 16),
-//           ],
-//           TextField(
-//             controller: _searchController,
-//             decoration: InputDecoration(
-//               hintText: "Search for services...",
-//               prefixIcon: const Icon(Icons.search),
-//               filled: true,
-//               fillColor: Colors.white,
-//               contentPadding:
-//                   const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
-//               border: OutlineInputBorder(
-//                 borderRadius: BorderRadius.circular(25),
-//                 borderSide: BorderSide.none,
-//               ),
-//             ),
-//           ),
-//           const SizedBox(height: 20),
-//           const Text(
-//             "Popular Services",
-//             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-//           ),
-//           const SizedBox(height: 12),
-//           if (_filteredServices.isNotEmpty)
-//             GridView.builder(
-//               shrinkWrap: true,
-//               physics: const NeverScrollableScrollPhysics(),
-//               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-//                 crossAxisCount: crossAxisCount,
-//                 childAspectRatio: 0.8,
-//                 mainAxisSpacing: 12,
-//                 crossAxisSpacing: 12,
-//               ),
-//               itemCount: _filteredServices.length,
-//               itemBuilder: (context, index) {
-//                 return GestureDetector(
-//                   onTap: () {
-//                     Navigator.push(
-//                       context,
-//                       MaterialPageRoute(
-//                         builder: (context) => ProfileDetailsPage(
-//                           title: "${_filteredServices[index]['title']}",
-//                           imgUrl: "",
-//                           description: "",
-//                           price: 0,
-//                           // title: service['title']!,
-//                           // imgUrl: service['img']!,
-//                           // description: service['description'] ??
-//                           //     'No description available',
-//                           // price: service['price'] ?? 0,
-//                         ),
-//                       ),
-//                     );
-//                   },
-//                   child: ServiceCard(
-//                     title: _filteredServices[index]['title']!,
-//                     imgUrl: _filteredServices[index]['img']!,
-//                   ),
-//                 );
-//               },
-//             )
-//           else
-//             const Padding(
-//               padding: EdgeInsets.all(12.0),
-//               child: Text(
-//                 "No matching services found",
-//                 style: TextStyle(color: Colors.grey, fontSize: 14),
-//               ),
-//             ),
-//           const SizedBox(height: 20),
-//           // CarouselSlider(
-//           //   options: CarouselOptions(
-//           //     height: 180,
-//           //     autoPlay: true,
-//           //     enlargeCenterPage: true,
-//           //     viewportFraction: 0.9,
-//           //     autoPlayInterval: const Duration(seconds: 3),
-//           //   ),
-//           //   items: promoImages.map((img) {
-//           //     return ClipRRect(
-//           //       borderRadius: BorderRadius.circular(16),
-//           //       child: Stack(
-//           //         children: [
-//           //           Image.network(img,
-//           //               fit: BoxFit.cover, width: double.infinity),
-//           //           Container(
-//           //             decoration: BoxDecoration(
-//           //               gradient: LinearGradient(
-//           //                 begin: Alignment.topCenter,
-//           //                 end: Alignment.bottomCenter,
-//           //                 colors: [
-//           //                   Colors.transparent,
-//           //                   Colors.black.withOpacity(0.4)
-//           //                 ],
-//           //               ),
-//           //             ),
-//           //           ),
-//           //         ],
-//           //       ),
-//           //     );
-//           //   }).toList(),
-//           // ),
-//         ],
-//       ),
-//     );
-//   }
-// }
