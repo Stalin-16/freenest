@@ -3,6 +3,11 @@ const cors = require("cors");
 const errorHandler = require("./middleware/errorHandler");
 const registerRoutes = require("./routes/indexRoutes");
 const path = require("path");
+const {
+  User,
+  ServiceProfile,
+  CartDetails,  
+} = require("./model/association");
 
 const app = express();
 
@@ -16,7 +21,7 @@ app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 registerRoutes(app);
 
 // Error handler
-app.use(errorHandler);
+// app.use(errorHandler);
 
 // Start server
 app.listen(5000, () =>

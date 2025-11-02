@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:freenest/routes/routes.dart';
 import 'package:freenest/screens/home_page.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const MyApp());
 }
 
@@ -28,6 +30,8 @@ class MyApp extends StatelessWidget {
         ),
         brightness: Brightness.dark,
       ),
+      initialRoute: "/home",
+      routes: routes,
       home: const HomePage(),
     );
   }

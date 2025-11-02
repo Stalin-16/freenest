@@ -3,13 +3,12 @@ const { generateToken, generateOTP } = require("../utils/jwt");
 const nodemailer = require("nodemailer");
 require("dotenv").config();
 
-
 const transporter = nodemailer.createTransport({
   service: "Gmail",
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  }
+    pass: process.env.EMAIL_PASS,
+  },
 });
 
 const sendOtp = async (req, res) => {
@@ -19,7 +18,12 @@ const sendOtp = async (req, res) => {
 
   let user = await User.findOne({ where: { email } });
   if (!user) {
-    user = await User.create({ email, user_name: email.split("@")[0], otp, otp_expires });
+    user = await User.create({
+      email,
+      user_name: email.split("@")[0],
+      otp,
+      otp_expires,
+    });
   } else {
     user.otp = otp;
     user.otp_expires = otpExpires;
@@ -30,7 +34,7 @@ const sendOtp = async (req, res) => {
     from: process.env.EMAIL_USER,
     to: email,
     subject: "Your OTP Code",
-    text: `Your OTP is ${otp}. It expires in 5 minutes.`
+    text: `Your OTP is ${otp}. It expires in 5 minutes.`,
   });
 
   res.json({ message: "OTP sent to email" });
@@ -42,7 +46,8 @@ verifyOtp = async (req, res) => {
 
   if (!user) return res.status(404).json({ message: "User not found" });
   if (user.otp !== otp) return res.status(400).json({ message: "Invalid OTP" });
-  if (user.otp_expires < new Date()) return res.status(400).json({ message: "OTP expired" });
+  if (user.otp_expires < new Date())
+    return res.status(400).json({ message: "OTP expired" });
 
   user.otp = null;
   user.otp_expires = null;
@@ -53,22 +58,24 @@ verifyOtp = async (req, res) => {
 };
 
 googleLogin = async (req, res) => {
-  const { email, id, user_name } = req.body;
-
-  console.log(email, id, user_name);
+  const { email, googleId, user_name } = req.body;
 
   let user = await User.findOne({ where: { email } });
 
   if (!user) {
-    user = await User.create({ email, googleId:id, name: user_name });
-  } else if (!user.id) {
-    user.id = id;
-    await user.save();
+    user = await User.create({ email, googleId: googleId, name: user_name });
   }
 
   const token = generateToken(user);
 
-  res.json({ message: "Login successful", token });
+  res.json({
+    status: 200,
+    message: "Login successful",
+    data: {
+      access_token: token,
+      user: user,
+    },
+  });
 };
 
 module.exports = { sendOtp, verifyOtp, googleLogin };

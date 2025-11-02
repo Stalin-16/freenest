@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:freenest/config/app_config.dart';
+import 'package:freenest/model/cart_model.dart';
 import 'package:freenest/model/profile_mode.dart';
+import 'package:freenest/service/cart_api_service.dart';
 import 'package:freenest/service/cart_service.dart';
 import 'package:freenest/service/profile_service.dart';
+import 'package:freenest/service/shared_service.dart';
 import '../../../widgets/custom_button.dart';
 
 class ProfileDetailsPage extends StatefulWidget {
@@ -16,8 +19,9 @@ class ProfileDetailsPage extends StatefulWidget {
 class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
   late Future<Profile> _profileFuture;
   final ProfileService _profileService = ProfileService();
+  final CartApiService _cartApiService = CartApiService();
 
-  final bool isLoggedIn = false;
+  bool isLoggedIn = false;
   @override
   void initState() {
     super.initState();
@@ -25,11 +29,25 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
   }
 
   Future<Profile> fetchProfile() async {
+    final loggedIn = await SharedService.isLoggedIn();
+    setState(() {
+      isLoggedIn = loggedIn;
+    });
     final response = await _profileService.getProfileById(widget.profileId);
     if (response.status == 200) {
       return Profile.fromMap(response.data);
     } else {
       throw Exception("Failed to load profile");
+    }
+  }
+
+  Future<CartItemModel> addToCart(Map<String, dynamic> product) async {
+    final cartItem = await _cartApiService.addToCart(product);
+
+    if (cartItem != null) {
+      return cartItem;
+    } else {
+      throw Exception("Failed to add item to cart");
     }
   }
 
@@ -229,18 +247,21 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
                           final item = {
                             "id": profile.id,
                             "title": profile.serviceTitle,
+                            "quantity": 1,
                             "hourlyRate": profile.hourlyRate,
                             "image": profile.profileImage,
                             "category": profile.serviceCategory,
                           };
 
                           if (isLoggedIn) {
+                            await addToCart(item);
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                   content: Text("Added to online cart")),
                             );
                           } else {
-                            await CartService.addToCart(item);
+                            final cartItem = CartItemModel.fromMap(item);
+                            await CartService.addToCart(cartItem);
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                   content: Text("Added to local cart")),

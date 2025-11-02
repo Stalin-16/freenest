@@ -25,16 +25,16 @@ class AuthService {
     return jsonDecode(res.body);
   }
 
-  Future<CommonResponseModel> googleLogin(
-      String email, String googleId, String? name) async {
-    try {
-      final res = await _helper.postWithoutToken(
-        "${AppConfig.oauthAPI}/google-login",
-        {"email": email, "googleId": googleId, "user_name": name},
-      );
-      return CommonResponseModel.fromJson(res);
-    } catch (e) {
-      throw Exception("Google login failed: $e");
-    }
+Future<CommonResponseModel> googleLogin(
+    String email, String googleId, String? name) async {
+  try {
+    final res = await _helper.postWithoutToken(
+      "${AppConfig.oauthAPI}/google-login",
+      {"email": email, "googleId": googleId, "user_name": name},
+    );
+    return CommonResponseModel.fromMap(res);
+  } catch (e) {
+    throw Exception("Google login failed: $e");
   }
+}
 }

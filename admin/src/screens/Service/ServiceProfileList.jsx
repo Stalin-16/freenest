@@ -8,7 +8,7 @@ const ServiceProfileList = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch("http://localhost:5001/api/v1/admin/service-profiles")
+    fetch("http://localhost:5000/api/v1/admin/service-profiles")
       .then((res) => res.json())
       .then((data) => {
         if (data.success) setProfiles(data.data);
@@ -68,7 +68,7 @@ const ServiceProfileList = () => {
                 <img
                   src={
                     profile.profileImage
-                      ? `http://localhost:5001${profile.profileImage}`
+                      ? `http://localhost:5000${profile.profileImage}`
                       : "https://via.placeholder.com/100"
                   }
                   alt="Profile"

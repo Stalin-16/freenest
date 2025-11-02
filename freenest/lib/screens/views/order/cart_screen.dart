@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:freenest/config/app_config.dart';
+import 'package:freenest/model/cart_model.dart';
+import 'package:freenest/screens/login_screen.dart';
+import 'package:freenest/service/cart_api_service.dart';
 import 'package:freenest/service/cart_service.dart';
+import 'package:freenest/constants/ui_screen_routes.dart';
+import 'package:freenest/service/shared_service.dart';
 
 class CartScreen extends StatefulWidget {
+  static String routeName = UiScreenRoutes.cart;
   const CartScreen({super.key});
 
   @override
@@ -22,19 +29,33 @@ class _CartScreenState extends State<CartScreen> {
   Future<void> _loadCart() async {
     setState(() => isLoading = true);
 
-    if (isLoggedIn) {
-      // TODO: Fetch from your API if user logged in
-      // final apiCart = await CartApiService.getCart();
-      // cart = apiCart;
-    } else {
-      cart = await CartService.getCart();
-    }
+    try {
+      final loggedIn = await SharedService.isLoggedIn();
+      List<CartItemModel> loadedCart = [];
 
-    setState(() => isLoading = false);
+      if (loggedIn) {
+        loadedCart = await CartApiService.getCart();
+      } else {
+        loadedCart = await CartService.getCart();
+      }
+
+print("Loaded cart: $loadedCart");
+      setState(() {
+        isLoggedIn = loggedIn;
+        cart = loadedCart.map((item) => item.toMap()).toList();
+        isLoading = false;
+      });
+    } catch (e) {
+      print("Error loading cart: $e");
+      setState(() => isLoading = false);
+    }
   }
 
   Future<void> _updateQuantity(int index, int newQuantity) async {
-    if (newQuantity <= 0) return;
+    if (newQuantity <= 0) {
+      await _removeItem(cart[index]['title']);
+      return;
+    }
 
     setState(() {
       cart[index]['quantity'] = newQuantity;
@@ -47,17 +68,22 @@ class _CartScreenState extends State<CartScreen> {
     }
   }
 
-  Future<void> _removeItem(String title) async {
-    await CartService.removeFromCart(title);
-    _loadCart();
-  }
+Future<void> _removeItem(String title) async {
+  await CartService.removeFromCart(title);
+  setState(() {
+    cart.removeWhere((item) => item['title'] == title);
+  });
+}
+
 
   void _proceedToCheckout() {
     if (!isLoggedIn) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please login to proceed')),
       );
-      Navigator.pushNamed(context, '/login');
+      Navigator.push(
+          context, MaterialPageRoute(builder: (_) => const LoginScreen()));
+
       return;
     }
     Navigator.pushNamed(context, '/checkout');
@@ -99,7 +125,7 @@ class _CartScreenState extends State<CartScreen> {
                         ClipRRect(
                           borderRadius: BorderRadius.circular(8),
                           child: Image.network(
-                            item['image'] ?? '',
+                            "${AppConfig.imageUrl}${item['imageUrl']}",
                             height: 60,
                             width: 60,
                             fit: BoxFit.cover,
@@ -113,7 +139,7 @@ class _CartScreenState extends State<CartScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                item['title'] ?? 'Untitled',
+                                item['name'] ?? 'Untitled',
                                 style: const TextStyle(
                                     fontWeight: FontWeight.bold, fontSize: 16),
                               ),
@@ -145,7 +171,7 @@ class _CartScreenState extends State<CartScreen> {
                         ),
                         IconButton(
                           icon: const Icon(Icons.delete_outline),
-                          onPressed: () => _removeItem(item['title']),
+                          onPressed: () => _removeItem(item['name']),
                         ),
                       ],
                     ),
@@ -195,107 +221,3 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 }
-
-
-
-
-
-// import 'package:flutter/material.dart';
-// import 'cart_service.dart'; // your existing service
-
-// class CartScreen extends StatefulWidget {
-//   const CartScreen({super.key});
-
-//   @override
-//   State<CartScreen> createState() => _CartScreenState();
-// }
-
-// class _CartScreenState extends State<CartScreen> {
-//   List<Map<String, dynamic>> cart = [];
-
-//   @override
-//   void initState() {
-//     super.initState();
-//     _loadCart();
-//   }
-
-//   Future<void> _loadCart() async {
-//     final items = await CartService.getCart(); // your existing getCart() logic
-//     setState(() {
-//       cart = items;
-//     });
-//   }
-
-//   Future<void> _removeItem(String title) async {
-//     await CartService.removeFromCart(title);
-//     _loadCart();
-//   }
-
-//   void _proceedToCheckout() {
-//     // implement checkout navigation or logic here
-//     ScaffoldMessenger.of(context).showSnackBar(
-//       const SnackBar(content: Text('Proceeding to checkout...')),
-//     );
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(title: const Text('My Cart')),
-//       body: cart.isEmpty
-//           ? const Center(child: Text('Your cart is empty'))
-//           : ListView.builder(
-//               itemCount: cart.length,
-//               itemBuilder: (context, index) {
-//                 final item = cart[index];
-//                 return StatefulBuilder(
-//                   builder: (context, setItemState) {
-//                     bool isChecked = true; // default all items checked
-
-//                     return CheckboxListTile(
-//                       value: isChecked,
-//                       onChanged: (bool? value) async {
-//                         setItemState(() => isChecked = value ?? false);
-
-//                         // If unchecked, remove the item
-//                         if (value == false) {
-//                           await _removeItem(item['title']);
-//                         }
-//                       },
-//                       secondary: Image.network(
-//                         item['img'],
-//                         height: 40,
-//                         width: 40,
-//                         fit: BoxFit.cover,
-//                       ),
-//                       title: Text(item['title']),
-//                       subtitle: item['price'] != null
-//                           ? Text('₹${item['price']}')
-//                           : null,
-//                       controlAffinity: ListTileControlAffinity.leading,
-//                     );
-//                   },
-//                 );
-//               },
-//             ),
-//       bottomNavigationBar: cart.isEmpty
-//           ? const SizedBox.shrink()
-//           : Padding(
-//               padding: const EdgeInsets.all(12.0),
-//               child: ElevatedButton(
-//                 onPressed: _proceedToCheckout,
-//                 style: ElevatedButton.styleFrom(
-//                   padding: const EdgeInsets.symmetric(vertical: 14),
-//                   shape: RoundedRectangleBorder(
-//                     borderRadius: BorderRadius.circular(10),
-//                   ),
-//                 ),
-//                 child: const Text(
-//                   'Proceed to Checkout',
-//                   style: TextStyle(fontSize: 18),
-//                 ),
-//               ),
-//             ),
-//     );
-//   }
-// }

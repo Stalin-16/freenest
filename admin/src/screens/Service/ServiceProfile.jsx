@@ -100,7 +100,7 @@ const ServiceProfile = () => {
 
   useEffect(() => {
     if (id) {
-      fetch(`http://localhost:5001/api/v1/admin/service-profiles/${id}`)
+      fetch(`http://localhost:5000/api/v1/admin/service-profiles/${id}`)
         .then((res) => res.json())
         .then((data) => {
           if (data.success) {
@@ -145,8 +145,8 @@ const ServiceProfile = () => {
 
     const method = id ? "PUT" : "POST";
     const url = id
-      ? `http://localhost:5001/api/v1/admin/service-profiles/${id}`
-      : "http://localhost:5001/api/v1/admin/service-profiles";
+      ? `http://localhost:5000/api/v1/admin/service-profiles/${id}`
+      : "http://localhost:5000/api/v1/admin/service-profiles";
 
     const res = await fetch(url, { method, body: formDataToSend });
     const result = await res.json();
@@ -181,7 +181,7 @@ const ServiceProfile = () => {
     }
 
     try {
-      const response = await fetch("http://localhost:5001/service-profiles", {
+      const response = await fetch("http://localhost:5000/service-profiles", {
         method: "POST",
         body: formDataToSend,
       });

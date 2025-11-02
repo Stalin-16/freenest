@@ -70,14 +70,14 @@ class ApiBaseHelper {
   Future<dynamic> get(String url) async {
     debugPrint('Api Get, url $_baseUrl$url');
     //  var token = await SharedService.getToken();
-    // TokenModel? token = await SharedService.getToken();
-    // if (token == null) {
-    //   SharedService.logggedOutWithOutContext();
-    // }
+    TokenModel? token = await SharedService.getToken();
+    if (token == null) {
+      SharedService.logggedOutWithOutContext();
+    }
 
     Map<String, String> requestHeader = {
-      // HttpHeaders.authorizationHeader: 'Bearer ${token!.accessToken!}'
-      HttpHeaders.authorizationHeader: 'Bearer '
+      HttpHeaders.authorizationHeader: 'Bearer ${token!.accessToken!}'
+
     };
     //debugPrint("the token is the ::::::::::::::    ${token.toString()}");
     dynamic responseJson;
@@ -126,41 +126,10 @@ class ApiBaseHelper {
     return responseJson;
   }
 
-  Future<dynamic> getToken(userName, password) async {
-    // debugPrint('Api Get, url $_baseUrl${AppConfig.oauthAPI}');
-    Map<String, String> requestHeader = {
-      'Content-Type': "application/x-www-form-urlencoded"
-    };
-    dynamic responseJson;
-    try {
-      final response = await http.post(
-          Uri.parse(
-            '$_baseUrl${AppConfig.oauthAPI}',
-          ),
-          headers: requestHeader,
-          //encoding: Encoding.getByName("utf-8"),
-          body: {
-            "username": userName,
-            "password": password,
-            "client_id": "Agas-mobile",
-            "grant_type": "password",
-            "client_secret": "5GOHZlMIql3b0YGrX6AQUhZ"
-          }).timeout(timeout, onTimeout: commonTimeReposne);
-      responseJson = _returnResponse(response);
-    } on SocketException {
-      debugPrint('No net');
-      return noInternetConnection();
-    } catch (error, s) {
-      debugPrint('$error$s');
-      return internalServerError("$error");
-    }
-    debugPrint('api get recieved!');
-    return responseJson;
-  }
-
   Future<dynamic> post(String url, dynamic body) async {
     debugPrint('Api Post, url  $_baseUrl$url');
     TokenModel? token = await SharedService.getToken();
+    print(token);
     Map<String, String> requestHeader = {
       HttpHeaders.authorizationHeader: 'Bearer ${token!.accessToken!}',
       'Content-Type': 'application/json'
@@ -173,7 +142,7 @@ class ApiBaseHelper {
               '$_baseUrl$url',
             ),
             headers: requestHeader,
-            body: json.encode(body),
+            body: json.encode(body ?? {}),
           )
           .timeout(timeout, onTimeout: commonTimeReposne);
       responseJson = _returnResponse(response);

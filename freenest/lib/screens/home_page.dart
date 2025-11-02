@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:freenest/constants/ui_screen_routes.dart';
 import 'package:freenest/screens/views/order/cart_screen.dart';
 import 'package:freenest/screens/views/home/home_screen.dart';
 import 'package:freenest/screens/views/order/order_screen.dart';
@@ -6,6 +7,7 @@ import 'package:freenest/screens/views/profile/profile_screen.dart';
 import 'package:freenest/service/cart_service.dart';
 
 class HomePage extends StatefulWidget {
+   static String routeName = UiScreenRoutes.home;
   const HomePage({super.key});
 
   @override

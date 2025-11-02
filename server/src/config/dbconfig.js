@@ -29,7 +29,7 @@ dbconfig
   .authenticate()
   .then(() => {
     console.log("Connection has been established successfully.");
-    return dbconfig.sync({ alter: true });
+    return dbconfig.sync({alter: true });
   })
   .then(() => {
     console.log("Tables created successfully if they didn't exist.");

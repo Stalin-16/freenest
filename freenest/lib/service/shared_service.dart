@@ -6,7 +6,9 @@ import 'package:freenest/model/token_model.dart';
 import 'package:freenest/model/user_model.dart';
 import 'package:freenest/screens/login_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 final Future<SharedPreferences> _storage = SharedPreferences.getInstance();
+
 class SharedService {
   static Future<void> setToken(token) async {
     final SharedPreferences storage = await _storage;
@@ -62,7 +64,6 @@ class SharedService {
     final SharedPreferences storage = await _storage;
     var token = storage.getString("token");
     if (token == null) {
-      debugPrint("tokentoken...........");
       SharedService.logggedOutWithOutContext();
     }
     return token != null ? TokenModel.fromJson(token) : null;
@@ -98,7 +99,12 @@ class SharedService {
   //   final SharedPreferences storage = await _storage;
   //   var user = storage.getString("userProfile");
   //   return user != null ? UserProfileModel.fromJson(user) : null;
-  // }
+  //
+
+  static Future<bool> isLoggedIn() async {
+    TokenModel? token = await SharedService.getToken();
+    return token != null && token.accessToken != null;
+  }
 
   static Future<UserModel?> getUser() async {
     final SharedPreferences storage = await _storage;
@@ -116,7 +122,6 @@ class SharedService {
     Navigator.pushNamedAndRemoveUntil(
         context, LoginScreen.routeName, (Route<dynamic> route) => false);
   }
-
 
   static Future<void> logggedOutWithOutContext() async {
     final SharedPreferences storage = await _storage;

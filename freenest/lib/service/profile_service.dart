@@ -9,9 +9,7 @@ class ProfileService {
 
  Future<List<ProfileList>> getAllProfiles() async {
     try {
-      final res = await _helper.get("$baseUrl/profile-customer");
-
-      print(res);
+      final res = await _helper.getwithoutToken("$baseUrl/profile-customer");
 
       // res is already a Map
       final commonResponse = CommonResponseModel.fromMap(res);
@@ -31,7 +29,7 @@ class ProfileService {
 
   Future<CommonResponseModel> getProfileById(String id) async {
     try {
-      final res = await _helper.get("$baseUrl/profile-customer/$id");
+      final res = await _helper.getwithoutToken("$baseUrl/profile-customer/$id");
       
       return CommonResponseModel.fromMap(res);
     } catch (e) {
