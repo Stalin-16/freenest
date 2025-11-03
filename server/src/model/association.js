@@ -2,6 +2,7 @@ const ServiceProfile = require("./admin/serviceProfile");
 const CartDetails = require("./cartDetails");
 const Order = require("./order");
 const OrderItem = require("./orderItem");
+const Review = require("./review");
 const User = require("./userModel");
 
   // 🧍 User ↔ CartDetails
@@ -29,3 +30,16 @@ const User = require("./userModel");
   // 🧾 Order ↔ OrderItem
   Order.hasMany(OrderItem, { foreignKey: "order_id" });
   OrderItem.belongsTo(Order, { foreignKey: "order_id" });
+
+
+
+  Order.hasOne(Review, {
+  foreignKey: 'orderId',
+  as: 'review'
+});
+
+Review.belongsTo(Order, {
+  foreignKey: 'orderId',
+  as: 'order'
+});
+

@@ -1,6 +1,3 @@
-import 'dart:convert';
-import 'dart:io';
-
 import 'package:freenest/config/app_config.dart';
 import 'package:freenest/model/common_reponse.dart';
 import 'package:freenest/model/order_model.dart';
@@ -11,9 +8,7 @@ class OrderApiService {
   static String baseUrl = AppConfig.customerAPI;
   static Future<List<OrderModel>> getOrders() async {
     final res = await _api.get('$baseUrl/order/get-all-orders');
-    print("🔍 API Response: $res");
-
-    // If using CommonResponseModel
+   // If using CommonResponseModel
     final result = CommonResponseModel.fromMap(res);
 
     if (result.status == 200) {

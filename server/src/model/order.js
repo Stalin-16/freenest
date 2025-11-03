@@ -1,8 +1,9 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/dbconfig");
 
-
-  const Order = sequelize.define("Order", {
+const Order = sequelize.define(
+  "Order",
+  {
     id: {
       type: DataTypes.INTEGER,
       autoIncrement: true,
@@ -21,8 +22,18 @@ const sequelize = require("../config/dbconfig");
       allowNull: false,
     },
     status: {
-      type: DataTypes.STRING,
-      defaultValue: "completed", // can also be 'pending', 'failed', etc.
+      type: DataTypes.ENUM(
+        "order placed",
+        "assigned",
+        "in progress",
+        "completed",
+        "reviewed"
+      ),
+      defaultValue: "order placed",
+    },
+    reviewId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
     },
     created_at: {
       type: DataTypes.DATE,
@@ -32,9 +43,11 @@ const sequelize = require("../config/dbconfig");
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
     },
-  }, {
+  },
+  {
     tableName: "orders",
     timestamps: false,
-  });
+  }
+);
 
-  module.exports = Order;
+module.exports = Order;

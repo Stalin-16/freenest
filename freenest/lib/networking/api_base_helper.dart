@@ -71,6 +71,7 @@ class ApiBaseHelper {
     debugPrint('Api Get, url $_baseUrl$url');
     //  var token = await SharedService.getToken();
     TokenModel? token = await SharedService.getToken();
+    print(token);
     if (token == null) {
       SharedService.logggedOutWithOutContext();
     }
