@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:freenest/routes/routes.dart';
 import 'package:freenest/screens/home_page.dart';
+import 'package:freenest/screens/splash_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,6 +20,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xfffebd55),
+          secondary: const Color(0xff545454),
           brightness: Brightness.light,
         ),
         brightness: Brightness.light,
@@ -30,9 +32,8 @@ class MyApp extends StatelessWidget {
         ),
         brightness: Brightness.dark,
       ),
-      initialRoute: "/home",
+      initialRoute: "/splash",
       routes: routes,
-      home: const HomePage(),
     );
   }
 }

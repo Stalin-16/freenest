@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:freenest/constants/ui_screen_routes.dart';
-import 'package:freenest/model/cart_model.dart';
 import 'package:freenest/model/token_model.dart';
 import 'package:freenest/model/user_model.dart';
 import 'package:freenest/service/cart_api_service.dart';
@@ -142,157 +141,208 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  void continueAsGuest() {
+    // Navigate to home screen as guest
+    Navigator.pushReplacementNamed(context, '/home');
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final textTheme = theme.textTheme;
     final isDark = theme.brightness == Brightness.dark;
     final size = MediaQuery.of(context).size;
-    final padding = size.width < 600 ? 20.0 : 40.0; // responsive padding
-    final boxWidth =
-        size.width < 600 ? double.infinity : 400.0; // responsive box
+
+    final primaryTextColor = isDark ? Colors.white : Colors.black87;
+    final borderColor = isDark ? Colors.grey.shade700 : Colors.grey.shade300;
+    final buttonColor =
+        isDark ? Colors.blueGrey.shade700 : const Color(0xFF4A4A4A);
 
     return Scaffold(
-      backgroundColor: colorScheme.background,
-      body: Center(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(horizontal: padding, vertical: 40),
-          child: Container(
-            width: boxWidth,
-            decoration: BoxDecoration(
-              color: colorScheme.surface,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                if (!isDark)
-                  BoxShadow(
-                    color: colorScheme.primary.withOpacity(0.1),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
-                  ),
-              ],
-            ),
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.lock_outline, size: 60, color: colorScheme.primary),
-                const SizedBox(height: 20),
-                Text(
-                  otpSent ? 'Verify OTP' : 'Login / Sign Up',
-                  style: textTheme.headlineSmall?.copyWith(
-                    color: colorScheme.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 30),
+      backgroundColor: theme.scaffoldBackgroundColor,
+      body: SafeArea(
+        child: Stack(
+          children: [
+            SingleChildScrollView(
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    SizedBox(height: size.height * 0.05),
 
-                // Email field
-                TextField(
-                  controller: emailCtrl,
-                  keyboardType: TextInputType.emailAddress,
-                  enabled: !otpSent,
-                  decoration: InputDecoration(
-                    labelText: 'Email Address',
-                    prefixIcon:
-                        Icon(Icons.email_outlined, color: colorScheme.primary),
-                    filled: true,
-                    fillColor: isDark
-                        ? colorScheme.surfaceVariant
-                        : colorScheme.surface,
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: colorScheme.primary),
+                    // ---------------- LOGO ----------------
+                    Image.asset(
+                      'assets/images/logo.png',
+                      height: size.height * 0.12,
                     ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
 
-                // OTP field
-                if (otpSent)
-                  TextField(
-                    controller: otpCtrl,
-                    keyboardType: TextInputType.number,
-                    maxLength: 6,
-                    decoration: InputDecoration(
-                      labelText: 'Enter OTP',
-                      prefixIcon:
-                          Icon(Icons.pin_outlined, color: colorScheme.primary),
-                      counterText: '',
-                      filled: true,
-                      fillColor: isDark
-                          ? colorScheme.surfaceVariant
-                          : colorScheme.surface,
-                      focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: colorScheme.primary),
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                    const SizedBox(height: 20),
+
+                    // ---------------- TITLE ----------------
+                    Text(
+                      'Chennai Freelancers',
+                      style: TextStyle(
+                        fontSize: size.width * 0.065,
+                        fontWeight: FontWeight.bold,
+                        color: primaryTextColor,
                       ),
                     ),
-                  ),
 
-                const SizedBox(height: 25),
+                    SizedBox(height: size.height * 0.05),
 
-                // Action button
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: colorScheme.primary,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                    // ---------------- EMAIL FIELD ----------------
+                    TextField(
+                      controller: emailCtrl,
+                      keyboardType: TextInputType.emailAddress,
+                      enabled: !otpSent,
+                      decoration: InputDecoration(
+                        hintText: "Enter Email Address",
+                        hintStyle: TextStyle(
+                            color:
+                                isDark ? Colors.grey[400] : Colors.grey[700]),
+                        filled: true,
+                        fillColor: theme.cardColor,
+                        suffixIcon: !otpSent
+                            ? TextButton(
+                                onPressed: isLoading ? null : sendOtp,
+                                child: Text(
+                                  "Get OTP",
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: theme.primaryColor,
+                                  ),
+                                ),
+                              )
+                            : null,
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 14),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: borderColor),
+                        ),
                       ),
                     ),
-                    onPressed: isLoading
-                        ? null
-                        : otpSent
-                            ? verifyOtp
-                            : sendOtp,
-                    child: isLoading
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : Text(
-                            otpSent ? 'Verify OTP' : 'Send OTP',
-                            style: textTheme.titleMedium?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
+
+                    const SizedBox(height: 20),
+
+                    // ---------------- OTP FIELD ----------------
+                    if (otpSent)
+                      TextField(
+                        controller: otpCtrl,
+                        maxLength: 6,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          hintText: "Enter OTP",
+                          counterText: "",
+                          filled: true,
+                          fillColor: theme.cardColor,
+                          hintStyle: TextStyle(
+                              color:
+                                  isDark ? Colors.grey[400] : Colors.grey[700]),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
                           ),
-                  ),
-                ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide(color: borderColor),
+                          ),
+                        ),
+                      ),
 
-                const SizedBox(height: 30),
-                Text('OR',
-                    style: textTheme.bodyMedium
-                        ?.copyWith(color: colorScheme.outline)),
+                    const SizedBox(height: 20),
 
-                const SizedBox(height: 20),
-
-                // Google Sign In
-                OutlinedButton.icon(
-                  icon: const Icon(Icons.g_mobiledata,
-                      size: 30, color: Colors.red),
-                  label: Text(
-                    'Continue with Google',
-                    style: textTheme.titleMedium?.copyWith(
-                      color: colorScheme.onSurface,
+                    // ---------------- SIGN UP BUTTON ----------------
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: otpSent ? verifyOtp : sendOtp,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: buttonColor,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: isLoading
+                            ? const CircularProgressIndicator(
+                                color: Colors.white)
+                            : const Text(
+                                "Sign Up & Start Hiring",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                      ),
                     ),
-                  ),
-                  onPressed: isLoading ? null : handleGoogleLogin,
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    side: BorderSide(color: colorScheme.outlineVariant),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+
+                    const SizedBox(height: 25),
+
+                    // ---------------- OR DIVIDER ----------------
+                    Row(
+                      children: [
+                        Expanded(child: Divider(color: borderColor)),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Text(
+                            "(OR)",
+                            style: TextStyle(color: primaryTextColor),
+                          ),
+                        ),
+                        Expanded(child: Divider(color: borderColor)),
+                      ],
                     ),
-                  ),
+
+                    const SizedBox(height: 25),
+
+                    // ---------------- CONTINUE AS GUEST ----------------
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: OutlinedButton(
+                        onPressed: continueAsGuest,
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: buttonColor),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: Text(
+                          "Continue as Guest",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: primaryTextColor,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    SizedBox(height: size.height * 0.10),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
+
+            // ---------------- FIXED BOTTOM FOOTER ----------------
+            Positioned(
+              bottom: 10,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Text(
+                  "Powered By Inaiworks.com",
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDark ? Colors.grey[400] : Colors.grey[600],
+                  ),
+                ),
+              ),
+            )
+          ],
         ),
       ),
     );

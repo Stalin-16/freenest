@@ -1,62 +1,214 @@
 import 'package:flutter/material.dart';
-import 'package:freenest/config/app_config.dart';
-import 'package:freenest/model/profile_name.dart';
-import 'package:freenest/screens/views/home/profile_details_screen.dart';
-import 'package:freenest/service/profile_service.dart';
-import 'package:freenest/widgets/service_card.dart';
-// import 'package:carousel_slider/carousel_slider.dart'
+import 'package:freenest/screens/views/home/profile_list_screen.dart';
+import 'dart:async';
+import 'dart:math';
+import 'package:shimmer/shimmer.dart';
+// import 'package:freenest/widgets/service_card.dart';
 
+/// Lightweight ServiceCard used in grids. Replace with your own widget if needed.
+class ServiceCard extends StatelessWidget {
+  final String title;
+  final String imgUrl;
+
+  const ServiceCard({Key? key, required this.title, required this.imgUrl})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(
+            color: theme.shadowColor.withOpacity(0.06),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          )
+        ],
+      ),
+      padding: const EdgeInsets.all(8),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Image
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.network(
+                imgUrl,
+                fit: BoxFit.contain,
+                width: double.infinity,
+                errorBuilder: (_, __, ___) =>
+                    const Icon(Icons.broken_image_outlined, size: 40),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Title
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Home screen with animated expand/collapse, shimmer first-load, dynamic search.
 class HomeScreen extends StatefulWidget {
+  const HomeScreen({Key? key}) : super(key: key);
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  final String? userName = "Stalin"; // Example name (replace dynamically later)
-  final ProfileService _profileService = ProfileService();
+class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
+  bool _isLoading = true; // show shimmer on first load only
+  bool _initialLoadDone = false;
 
-  List<Map<String, dynamic>> _profiles = [];
-  List<Map<String, dynamic>> _filteredProfiles = [];
-  bool _isLoading = true;
+  // Hard-coded categories & items (each item has unique id)
+  final List<Map<String, dynamic>> serviceCategories = [
+    {
+      "category": "Analyst",
+      "items": [
+        {
+          "id": 101,
+          "title": "Business Analyst",
+          "img": "https://cdn-icons-png.flaticon.com/512/3135/3135692.png",
+        },
+        {
+          "id": 102,
+          "title": "Salesforce Business Analyst",
+          "img": "https://cdn-icons-png.flaticon.com/512/5968/5968914.png",
+        },
+        {
+          "id": 103,
+          "title": "Quality Analyst",
+          "img": "https://cdn-icons-png.flaticon.com/512/1698/1698535.png",
+        },
+      ]
+    },
+    {
+      "category": "Web Developer",
+      "items": [
+        {
+          "id": 201,
+          "title": "PHP Developer",
+          "img": "https://cdn-icons-png.flaticon.com/512/919/919830.png",
+        },
+        {
+          "id": 202,
+          "title": "Node JS Developer",
+          "img": "https://cdn-icons-png.flaticon.com/512/919/919825.png",
+        },
+        {
+          "id": 203,
+          "title": "Java Developer",
+          "img": "https://cdn-icons-png.flaticon.com/512/226/226777.png",
+        },
+      ]
+    },
+    {
+      "category": "Mobile Developer",
+      "items": [
+        {
+          "id": 301,
+          "title": "Flutter Developer",
+          "img": "https://cdn-icons-png.flaticon.com/512/888/888859.png",
+        },
+        {
+          "id": 302,
+          "title": "React Native Developer",
+          "img": "https://cdn-icons-png.flaticon.com/512/919/919851.png",
+        },
+        {
+          "id": 303,
+          "title": "iOS Developer",
+          "img": "https://cdn-icons-png.flaticon.com/512/731/731985.png",
+        },
+        {
+          "id": 304,
+          "title": "Kotlin Developer",
+          "img": "https://cdn-icons-png.flaticon.com/512/732/732212.png",
+        },
+      ]
+    },
+  ];
+
+  // Expanded state stored by category index
+  final Map<int, bool> _expanded = {};
+
+  // For filtering results
+  Map<int, List<Map<String, dynamic>>> _filteredByCategory = {};
+
+  // Random placeholder text
+  late String _randomPlaceholder;
 
   @override
   void initState() {
     super.initState();
-    _loadProfiles();
-    _searchController.addListener(_onSearchChanged);
+    _prepareInitialData();
+    _searchController.addListener(_applyFilter);
   }
 
-  Future<void> _loadProfiles() async {
-    setState(() => _isLoading = true);
-    try {
-      final List<ProfileList> profiles = await _profileService.getAllProfiles();
-      setState(() {
-        _profiles = profiles
-            .map((p) => {
-                  'id': p.id.toString(),
-                  'title': p.serviceTitle,
-                  'img': p.profileImage != null && p.profileImage!.isNotEmpty
-                      ? "${AppConfig.imageUrl}${p.profileImage}"
-                      : "https://cdn-icons-png.flaticon.com/512/1946/1946429.png",
-                })
-            .toList();
-        _filteredProfiles = _profiles;
-        _isLoading = false;
-      });
-    } catch (e) {
-      print("Error loading profiles: $e");
-      setState(() => _isLoading = false);
+  void _prepareInitialData() {
+    // initialize expanded state and filtered map
+    for (int i = 0; i < serviceCategories.length; i++) {
+      _expanded[i] = true;
+      _filteredByCategory[i] =
+          List<Map<String, dynamic>>.from(serviceCategories[i]['items']);
     }
+
+    // pick random placeholder from all titles
+    final allTitles = <String>[];
+    for (final c in serviceCategories) {
+      for (final it in c['items']) {
+        allTitles.add(it['title'] as String);
+      }
+    }
+    final rng = Random();
+    _randomPlaceholder = allTitles.isNotEmpty
+        ? allTitles[rng.nextInt(allTitles.length)]
+        : 'Search';
+
+    // Simulate shimmer loading on first load only (2.5s)
+    _isLoading = true;
+    Timer(const Duration(milliseconds: 2500), () {
+      setState(() {
+        _isLoading = false;
+        _initialLoadDone = true;
+      });
+    });
   }
 
-  void _onSearchChanged() {
-    String query = _searchController.text.toLowerCase();
-    setState(() {
-      _filteredProfiles = _profiles
-          .where((p) => p['title'].toLowerCase().contains(query))
-          .toList();
-    });
+  void _applyFilter() {
+    final q = _searchController.text.trim().toLowerCase();
+    if (q.isEmpty) {
+      // restore original lists
+      for (int i = 0; i < serviceCategories.length; i++) {
+        _filteredByCategory[i] =
+            List<Map<String, dynamic>>.from(serviceCategories[i]['items']);
+      }
+    } else {
+      for (int i = 0; i < serviceCategories.length; i++) {
+        final items = serviceCategories[i]['items'] as List;
+        _filteredByCategory[i] = items
+            .where((it) =>
+                (it['title'] as String).toLowerCase().contains(q) ||
+                (serviceCategories[i]['category'] as String)
+                    .toLowerCase()
+                    .contains(q))
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+      }
+    }
+    setState(() {});
   }
 
   @override
@@ -65,113 +217,189 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
+  Widget _buildShimmerGrid(int crossAxisCount) {
+    // show 6 placeholders (2 rows of 3)
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: 6,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
+        childAspectRatio: 0.85,
+      ),
+      itemBuilder: (context, index) {
+        return Shimmer.fromColors(
+          baseColor: Theme.of(context).cardColor.withOpacity(0.6),
+          highlightColor: Theme.of(context).cardColor.withOpacity(0.3),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    double screenWidth = MediaQuery.of(context).size.width;
-    int crossAxisCount = screenWidth < 600 ? 3 : 5;
+    final width = MediaQuery.of(context).size.width;
+    final crossAxisCount = width < 600 ? 3 : 5;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      // appBar: AppBar(
-        // backgroundColor: Colors.white,
-        // title: Row(
-        //   children: [
-        //     const Icon(Icons.person, color: Colors.white),
-        //     const SizedBox(width: 10),
-        //     Text(
-        //       "Welcome, ${userName ?? 'User'} ",
-        //       style:  TextStyle(color:  theme.brightness == Brightness.dark ? Colors.black : Colors.black),
-        //     ),
-        //   ],
-        // ),
-      //   actions: [
-      //     IconButton(
-      //       icon: Icon(
-      //         theme.brightness == Brightness.dark
-      //             ? Icons.light_mode
-      //             : Icons.dark_mode,
-      //         color: Colors.white,
-      //       ),
-      //       onPressed: () {
-      //         // Optional: Implement theme toggle using provider or Bloc later
-      //       },
-      //     ),
-      //   ],
-      // ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 10),
-            TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: "Search for services...",
-                prefixIcon: const Icon(Icons.search),
-                filled: true,
-                fillColor: theme.inputDecorationTheme.fillColor ??
-                    (theme.brightness == Brightness.dark
-                        ? Colors.grey[900]
-                        : Colors.white),
-                contentPadding:
-                    const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(25),
-                  borderSide: BorderSide.none,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: "Search for \"$_randomPlaceholder\"",
+                  prefixIcon: const Icon(Icons.search),
+                  filled: true,
+                  fillColor: theme.cardColor,
+                  contentPadding:
+                      const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              "Popular Services",
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 12),
-            if (_isLoading)
-              const Center(child: CircularProgressIndicator())
-            else if (_filteredProfiles.isNotEmpty)
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: crossAxisCount,
-                  childAspectRatio: 0.8,
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
+
+              const SizedBox(height: 18),
+
+              Text(
+                "Explore all service profiles",
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.orange[700],
                 ),
-                itemCount: _filteredProfiles.length,
-                itemBuilder: (context, index) {
-                  final item = _filteredProfiles[index];
-                  return GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              ProfileDetailsPage(profileId: item['id']),
+              ),
+
+              const SizedBox(height: 12),
+
+              // if loading: shimmer once on first load
+              if (_isLoading && !_initialLoadDone)
+                _buildShimmerGrid(crossAxisCount)
+              else
+                // categories
+                Column(
+                  children: List.generate(serviceCategories.length, (catIndex) {
+                    final categoryData = serviceCategories[catIndex];
+                    final categoryName = categoryData['category'] as String;
+                    final items = List<Map<String, dynamic>>.from(
+                        _filteredByCategory[catIndex] ?? []);
+
+                    // ensure expanded default
+                    _expanded.putIfAbsent(catIndex, () => true);
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // header with animated arrow
+                        GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _expanded[catIndex] = !_expanded[catIndex]!;
+                            });
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 8, horizontal: 4),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(categoryName,
+                                    style: theme.textTheme.titleMedium
+                                        ?.copyWith(
+                                            fontWeight: FontWeight.w600)),
+                                AnimatedRotation(
+                                  // subtle rotation for arrow
+                                  turns: _expanded[catIndex]! ? 0.0 : 0.5,
+                                  duration: const Duration(milliseconds: 300),
+                                  curve: Curves.easeInOut,
+                                  child: Icon(
+                                    Icons.keyboard_arrow_up,
+                                    size: 26,
+                                    color: theme.iconTheme.color,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                      );
-                    },
-                    child: ServiceCard(
-                      title: item['title'],
-                      imgUrl: item['img'],
-                    ),
-                  );
-                },
-              )
-            else
-              const Padding(
-                padding: EdgeInsets.all(12.0),
-                child: Text(
-                  "No matching services found",
-                  style: TextStyle(color: Colors.grey, fontSize: 14),
+
+                        // Animated size for smooth collapse/expand
+                        AnimatedSize(
+                          duration: const Duration(milliseconds: 350),
+                          curve: Curves.easeInOut,
+                          child: ConstrainedBox(
+                            constraints: _expanded[catIndex]!
+                                ? const BoxConstraints()
+                                : const BoxConstraints(maxHeight: 0),
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 300),
+                              child: items.isEmpty
+                                  ? Padding(
+                                      padding: const EdgeInsets.all(12.0),
+                                      child: Text(
+                                        "No matches found",
+                                        style: theme.textTheme.bodySmall,
+                                      ),
+                                    )
+                                  : GridView.builder(
+                                      key: ValueKey(
+                                          "grid_${catIndex}_${items.length}_${_searchController.text}"),
+                                      shrinkWrap: true,
+                                      physics:
+                                          const NeverScrollableScrollPhysics(),
+                                      itemCount: items.length,
+                                      gridDelegate:
+                                          SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: crossAxisCount,
+                                        mainAxisSpacing: 12,
+                                        crossAxisSpacing: 12,
+                                        childAspectRatio: 0.85,
+                                      ),
+                                      itemBuilder: (context, i) {
+                                        final item = items[i];
+                                        return GestureDetector(
+                                          onTap: () {
+                                            // handle navigation to profile details with item['id']
+                                            Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                    builder: (_) =>
+                                                        ProfileListScreen(
+                                                            profileId:
+                                                                item['id'])));
+                                          },
+                                          child: ServiceCard(
+                                            title: item['title'] as String,
+                                            imgUrl: item['img'] as String,
+                                          ),
+                                        );
+                                      },
+                                    ),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 18),
+                      ],
+                    );
+                  }),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );

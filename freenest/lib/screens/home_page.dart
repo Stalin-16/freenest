@@ -7,7 +7,7 @@ import 'package:freenest/screens/views/profile/profile_screen.dart';
 import 'package:freenest/service/cart_service.dart';
 
 class HomePage extends StatefulWidget {
-   static String routeName = UiScreenRoutes.home;
+  static String routeName = UiScreenRoutes.home;
   const HomePage({super.key});
 
   @override
@@ -25,9 +25,9 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     _loadCartCount();
     _screens.addAll([
-      HomeScreen(),
-      OrderScreen(),
-      ProfileScreen(),
+      const HomeScreen(),
+      const OrderScreen(),
+      const ProfileScreen(),
     ]);
   }
 
@@ -53,52 +53,78 @@ class _HomePageState extends State<HomePage> {
                   ? "Orders"
                   : "Profile",
         ),
-        actions: [
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.shopping_cart_outlined),
-                onPressed: () async {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const CartScreen()),
-                  ).then((_) => _loadCartCount());
-                },
-              ),
-              if (_cartCount > 0)
-                Positioned(
-                  right: 6,
-                  top: 6,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Text(
-                      '$_cartCount',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
+        actions: _selectedIndex == 0 // Show actions only for Home screen
+            ? [
+                // Use Expanded to take available width and separate left/right content
+                Expanded(
+                  child: Row(
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.all(8.0),
+                        child: SizedBox(width: 8),
                       ),
-                    ),
+                      DropdownButton<String>(
+                        value: "India",
+                        underline: const SizedBox(),
+                        items: ["India", "USA", "UK", "UAE"]
+                            .map((e) =>
+                                DropdownMenuItem(value: e, child: Text(e)))
+                            .toList(),
+                        onChanged: (v) {},
+                      ),
+
+                      // Spacer to push cart to the right end
+                      const Spacer(),
+
+                      // Right side - Cart icon with badge
+                      Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: IconButton(
+                              icon: const Icon(Icons.shopping_cart_outlined),
+                              onPressed: () async {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) => const CartScreen()),
+                                ).then((_) => _loadCartCount());
+                              },
+                            ),
+                          ),
+                          if (_cartCount > 0)
+                            Positioned(
+                              right: 8,
+                              top: 8,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Text(
+                                  '$_cartCount',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-            ],
-          ),
-        ],
+              ]
+            : null, // No actions for other screens
       ),
       body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            // double width = constraints.maxWidth;
-            return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: _screens[_selectedIndex],
-            );
-          },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: _screens[_selectedIndex],
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
