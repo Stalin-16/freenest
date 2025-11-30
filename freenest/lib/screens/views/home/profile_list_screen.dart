@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:freenest/config/app_config.dart';
 import 'package:freenest/model/profile_name.dart';
+import 'package:freenest/screens/views/home/draggable_pop.dart';
 import 'package:freenest/service/profile_service.dart';
 import 'package:freenest/widgets/reffera_card_widget.dart';
 
@@ -78,138 +79,6 @@ class _ProfileListScreenState extends State<ProfileListScreen> {
       print("Profile loading failed: $e");
       setState(() => _isLoading = false);
     }
-  }
-
-  void _showProfileDetailsBottomSheet(ProfileList p) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (_) {
-        return DraggableScrollableSheet(
-          expand: false,
-          initialChildSize: 0.85,
-          minChildSize: 0.4,
-          maxChildSize: 0.95,
-          builder: (context, scrollController) {
-            return SingleChildScrollView(
-              controller: scrollController,
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header Row
-                  Row(
-                    children: [
-                      // Profile Image
-                      CircleAvatar(
-                        radius: 28,
-                        backgroundImage: NetworkImage(
-                          p.profileImage.isNotEmpty
-                              ? "${AppConfig.imageUrl}${p.profileImage}"
-                              : "https://cdn-icons-png.flaticon.com/512/1946/1946429.png",
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-
-                      // Title, exp & rating
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              p.serviceTitle,
-                              style: const TextStyle(
-                                  fontSize: 18, fontWeight: FontWeight.w600),
-                            ),
-                            const SizedBox(height: 4),
-                            Text("${p.experience} Experience",
-                                style: TextStyle(
-                                    fontSize: 13, color: Colors.grey.shade600)),
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                const Icon(Icons.star,
-                                    size: 18, color: Colors.orange),
-                                const SizedBox(width: 4),
-                                Text("${p.rating} (${p.workOrders} orders)",
-                                    style: TextStyle(
-                                        fontSize: 13,
-                                        color: Colors.grey.shade700)),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      // Price
-                      Column(
-                        children: [
-                          Text(
-                            "Rs. ${p.price.toStringAsFixed(0)} / hour",
-                            style: const TextStyle(
-                                fontSize: 14, fontWeight: FontWeight.w600),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 16),
-                  const Divider(),
-
-                  // Description
-                  Text(
-                    "No description",
-                    style: const TextStyle(fontSize: 14),
-                  ),
-
-                  const SizedBox(height: 16),
-                  const Divider(),
-
-                  // Dummy "Service Deliverables"
-                  const Text(
-                    "Service Deliverables",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 12),
-
-                  const SizedBox(height: 25),
-                  const Divider(),
-
-                  // Bottom Price Display
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          "Rs. ${(p.price * 15).toStringAsFixed(0)}",
-                          style: const TextStyle(
-                              fontSize: 20, fontWeight: FontWeight.bold),
-                        ),
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 24, vertical: 14),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10)),
-                          ),
-                          onPressed: () {},
-                          child: const Text("Add to cart"),
-                        )
-                      ],
-                    ),
-                  )
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
   }
 
   @override
@@ -322,8 +191,8 @@ class _ProfileListScreenState extends State<ProfileListScreen> {
                                             ),
                                             GestureDetector(
                                               onTap: () =>
-                                                  _showProfileDetailsBottomSheet(
-                                                      p),
+                                                  showProfileDetailsBottomSheet(
+                                                      context, p),
                                               child: const Text(
                                                 "View details",
                                                 style: TextStyle(
@@ -364,7 +233,11 @@ class _ProfileListScreenState extends State<ProfileListScreen> {
                                             ),
                                             backgroundColor: Colors.grey[800],
                                           ),
-                                          child: const Text("Add"),
+                                          child: const Text(
+                                            "Add",
+                                            style:
+                                                TextStyle(color: Colors.white),
+                                          ),
                                         ),
                                       ),
                                     ],

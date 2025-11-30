@@ -14,74 +14,72 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
     // Navigate to next screen after 3 seconds
-    Future.delayed(const Duration(seconds: 3), () {
-      Navigator.pushReplacementNamed(
-          context, '/home'); // Replace with your next screen
+    Future.delayed(const Duration(seconds: 2), () {
+      Navigator.pushNamedAndRemoveUntil(
+          context, '/home', (Route<dynamic> route) => false);
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final Size size = MediaQuery.of(context).size;
+    final bool isSmallScreen = size.width < 600;
+
     return Scaffold(
-      backgroundColor: Colors.white, // Change background color as needed
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+      backgroundColor: isDarkMode ? Colors.grey[900] : Colors.white,
+      body: SafeArea(
+        child: Stack(
           children: [
-            // Your Logo
-            Image.asset(
-              'assets/images/logo.png', // Update with your actual logo path
-              height: 120,
-              width: 120,
-              fit: BoxFit.contain,
-            ),
+            // Main Content Centered
+            Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Your Logo
+                    Image.asset(
+                      'assets/images/loginL.png',
+                      height: isSmallScreen
+                          ? size.height * 0.25
+                          : size.height * 0.3,
+                      width:
+                          isSmallScreen ? size.width * 0.6 : size.width * 0.4,
+                      fit: BoxFit.contain,
+                    ),
 
-            const SizedBox(height: 40),
+                    SizedBox(height: isSmallScreen ? 30 : 40),
 
-            // "Chenai" Text
-            Text(
-              'Chennai',
-              style: TextStyle(
-                fontSize: 36,
-                fontWeight: FontWeight.bold,
-                color: Colors.blue[900], // Adjust color to match your design
+                    // "Let's Build Together" Text - Made Bolder
+                    Text(
+                      "Let's Build Together",
+                      style: TextStyle(
+                        fontSize: isSmallScreen ? 16 : 18,
+                        fontWeight: FontWeight.w700,
+                        color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
 
-            const SizedBox(height: 20),
-
-            // "Freelancers" Text
-            Text(
-              'Freelancers',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
-                color: Colors.grey[700],
-                letterSpacing: 1.2,
-              ),
-            ),
-
-            const SizedBox(height: 40),
-
-            // "Let's Build Together" Text
-            Text(
-              "Let's Build Together",
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w400,
-                color: Colors.grey[600],
-                fontStyle: FontStyle.italic,
-              ),
-            ),
-
-            const SizedBox(height: 60),
-
-            // Powered By Text
-            Text(
-              'Powered By Inaivorks.com',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[500],
+            // Powered By Text at Bottom
+            Positioned(
+              bottom: isSmallScreen ? 20 : 30,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Text(
+                  'Powered By Inaivorks.com',
+                  style: TextStyle(
+                    fontSize: isSmallScreen ? 12 : 14,
+                    color: isDarkMode ? Colors.grey[500] : Colors.grey[500],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
               ),
             ),
           ],

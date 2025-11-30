@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:freenest/routes/routes.dart';
-import 'package:freenest/screens/home_page.dart';
-import 'package:freenest/screens/splash_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
