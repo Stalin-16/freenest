@@ -72,10 +72,32 @@ const ServiceProfile = require("../model/admin/serviceProfile");
 //   }
 // };
 
+// ✅ GET ALL
+
 exports.getAllProfilesForUsers = async (req, res) => {
   try {
+    const categoryID = req.query.serviceSubCategoryId;
+    const { limit = 10, offset = 0 } = req.query;
+    if (!categoryID) {
+      return res.status(400).json({
+        status: 400,
+        message: "categoryId query parameter is required",
+      });
+    }
     const profiles = await ServiceProfile.findAll({
-      attributes: ["id","profileImage", "serviceTitle"],
+      where: { serviceSubCategoryId: categoryID },
+      attributes: [
+        "id",
+        "profileImage",
+        "serviceTitle",
+        "hourlyRate",
+        "tagline",
+        "rating",
+        "experienceRange",
+      ],
+      order: [["serviceTitle", "ASC"]],
+      offset: parseInt(offset),
+      limit: parseInt(limit),
     });
 
     res.json({ status: 200, data: profiles });

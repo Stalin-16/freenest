@@ -1,11 +1,31 @@
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 
 const ServiceProfile = () => {
+  const navigate = useNavigate();
+  const serviceCategories = [
+    { id: 1, title: "Analyst" },
+    { id: 2, title: "Web Developer" },
+    { id: 3, title: "Mobile Developer" },
+  ];
+
+  const serviceSubCategories = [
+    { id: 101, categoryId: 1, title: "Business Analyst" },
+    { id: 102, categoryId: 1, title: "Salesforce Business Analyst" },
+    { id: 103, categoryId: 1, title: "Quality Analyst" },
+    { id: 201, categoryId: 2, title: "PHP Developer" },
+    { id: 202, categoryId: 2, title: "Node JS Developer" },
+    { id: 203, categoryId: 2, title: "Java Developer" },
+    { id: 301, categoryId: 3, title: "Flutter Developer" },
+    { id: 302, categoryId: 3, title: "React Native Developer" },
+    { id: 303, categoryId: 3, title: "iOS Developer" },
+    { id: 304, categoryId: 3, title: "Kotlin Developer" },
+  ];
   const [formData, setFormData] = useState({
     // 1. Basic Information
     serviceTitle: "",
-    serviceCategory: "",
+    serviceCategoryId: "",
+    serviceSubCategoryId: "",
     experienceRange: "",
     hourlyRate: "",
     tagline: "",
@@ -46,21 +66,42 @@ const ServiceProfile = () => {
     keywords: "",
   });
 
-  const serviceCategories = [
-    "Web Development",
-    "Software Development",
-    "Mobile Development",
-    "UI/UX Design",
-    "Management",
-    "Consulting",
-    "Salesforce",
-  ];
+  const [filteredSubCategories, setFilteredSubCategories] = useState([]);
+
+  // Filter subcategories when category changes
+  useEffect(() => {
+    if (formData.serviceCategoryId) {
+      const filtered = serviceSubCategories.filter(
+        (subCat) => subCat.categoryId === parseInt(formData.serviceCategoryId)
+      );
+      setFilteredSubCategories(filtered);
+
+      // Reset subcategory when category changes
+      setFormData((prev) => ({
+        ...prev,
+        serviceSubCategory: "",
+        serviceSubCategoryId: "",
+      }));
+    } else {
+      setFilteredSubCategories([]);
+    }
+  }, [formData.serviceCategoryId]);
 
   const handleInputChange = (section, field, value, index = null) => {
     if (index !== null) {
       const updatedArray = [...formData[section]];
       updatedArray[index][field] = value;
       setFormData((prev) => ({ ...prev, [section]: updatedArray }));
+    } else if (field === "serviceCategory") {
+      setFormData((prev) => ({
+        ...prev,
+        serviceCategoryId: value,
+      }));
+    } else if (field === "serviceSubCategory") {
+      setFormData((prev) => ({
+        ...prev,
+        serviceSubCategoryId: value,
+      }));
     } else {
       setFormData((prev) => ({ ...prev, [field]: value }));
     }
@@ -100,7 +141,7 @@ const ServiceProfile = () => {
 
   useEffect(() => {
     if (id) {
-      fetch(`http://localhost:5000/api/v1/admin/service-profiles/${id}`)
+      fetch(`${import.meta.env.VITE_API_URL}/service-profiles/${id}`)
         .then((res) => res.json())
         .then((data) => {
           if (data.success) {
@@ -108,6 +149,8 @@ const ServiceProfile = () => {
             setFormData({
               ...formData,
               ...profile,
+              // serviceCategoryId: profile.serviceCategoryId || "",
+              // serviceSubCategoryId: profile.serviceSubCategoryId || "",
               deliverables: Array.isArray(profile.deliverables)
                 ? profile.deliverables
                 : JSON.parse(profile.deliverables || "[]"),
@@ -140,17 +183,21 @@ const ServiceProfile = () => {
     });
 
     if (formData.profileImage) {
-      formDataToSend.append("profileImage", formData.profileImage); // ✅ file included
+      formDataToSend.append("profileImage", formData.profileImage);
     }
 
     const method = id ? "PUT" : "POST";
     const url = id
-      ? `http://localhost:5000/api/v1/admin/service-profiles/${id}`
-      : "http://localhost:5000/api/v1/admin/service-profiles";
+      ? `${import.meta.env.VITE_API_URL}/service-profiles/${id}`
+      : `${import.meta.env.VITE_API_URL}/service-profiles`;
 
     const res = await fetch(url, { method, body: formDataToSend });
     const result = await res.json();
-    console.log(result);
+    if (result.success) {
+      navigate(-1);
+    } else {
+      alert("Error: " + result.message);
+    }
   };
 
   const handleSubmits = async (e) => {
@@ -181,10 +228,13 @@ const ServiceProfile = () => {
     }
 
     try {
-      const response = await fetch("http://localhost:5000/service-profiles", {
-        method: "POST",
-        body: formDataToSend,
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/service-profiles`,
+        {
+          method: "POST",
+          body: formDataToSend,
+        }
+      );
 
       const result = await response.json();
 
@@ -230,25 +280,59 @@ const ServiceProfile = () => {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Service Category
-                </label>
-                <select
-                  value={formData.serviceCategory}
-                  onChange={(e) =>
-                    handleInputChange(null, "serviceCategory", e.target.value)
-                  }
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                  required
-                >
-                  <option value="">Select Category</option>
-                  {serviceCategories.map((category) => (
-                    <option key={category} value={category}>
-                      {category}
-                    </option>
-                  ))}
-                </select>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Service Category
+                  </label>
+                  <select
+                    value={formData.serviceCategoryId}
+                    onChange={(e) =>
+                      handleInputChange(null, "serviceCategory", e.target.value)
+                    }
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                    required
+                  >
+                    <option value="">Select Category</option>
+                    {serviceCategories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Service Subcategory
+                  </label>
+                  <select
+                    value={formData.serviceSubCategoryId}
+                    onChange={(e) =>
+                      handleInputChange(
+                        null,
+                        "serviceSubCategory",
+                        e.target.value
+                      )
+                    }
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                    disabled={!formData.serviceCategoryId}
+                    required={!!formData.serviceCategoryId}
+                  >
+                    <option value="">Select Subcategory</option>
+                    {filteredSubCategories.map((subCategory) => (
+                      <option key={subCategory.id} value={subCategory.id}>
+                        {subCategory.title}
+                      </option>
+                    ))}
+                  </select>
+                  {formData.serviceCategoryId &&
+                    filteredSubCategories.length === 0 && (
+                      <p className="text-sm text-gray-500 mt-1">
+                        No subcategories available for this category
+                      </p>
+                    )}
+                </div>
               </div>
 
               <div>

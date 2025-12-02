@@ -10,7 +10,8 @@ const ServiceProfile = sequelize.define(
     },
     // 1. Basic Info
     serviceTitle: { type: DataTypes.STRING, allowNull: false },
-    serviceCategory: { type: DataTypes.STRING, allowNull: false },
+    serviceCategoryId: { type: DataTypes.INTEGER, allowNull: false },
+    serviceSubCategoryId: { type: DataTypes.INTEGER, allowNull: false },
     experienceRange: { type: DataTypes.STRING, allowNull: false },
     hourlyRate: { type: DataTypes.FLOAT, allowNull: false },
     tagline: { type: DataTypes.STRING, allowNull: false },

@@ -1,4 +1,3 @@
-
 const path = require("path");
 const fs = require("fs");
 const ServiceProfile = require("../../model/admin/serviceProfile");
@@ -21,7 +20,8 @@ exports.createServiceProfile = async (req, res) => {
 
     const newProfile = await ServiceProfile.create({
       serviceTitle: req.body.serviceTitle,
-      serviceCategory: req.body.serviceCategory,
+      serviceCategoryId: req.body.serviceCategoryId,
+      serviceSubCategoryId: req.body.serviceSubCategoryId,
       experienceRange: req.body.experienceRange,
       hourlyRate: req.body.hourlyRate,
       tagline: req.body.tagline,
@@ -60,7 +60,10 @@ exports.getAllProfiles = async (req, res) => {
 exports.getProfileById = async (req, res) => {
   try {
     const profile = await ServiceProfile.findByPk(req.params.id);
-    if (!profile) return res.status(404).json({ success: false, message: "Profile not found" });
+    if (!profile)
+      return res
+        .status(404)
+        .json({ success: false, message: "Profile not found" });
     res.json({ success: true, data: profile });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -71,11 +74,17 @@ exports.getProfileById = async (req, res) => {
 exports.updateProfile = async (req, res) => {
   try {
     const profile = await ServiceProfile.findByPk(req.params.id);
-    if (!profile) return res.status(404).json({ success: false, message: "Profile not found" });
+    if (!profile)
+      return res
+        .status(404)
+        .json({ success: false, message: "Profile not found" });
 
     let imagePath = profile.profileImage;
     if (req.file) {
-      if (imagePath && fs.existsSync(path.join(__dirname, "../../..", imagePath))) {
+      if (
+        imagePath &&
+        fs.existsSync(path.join(__dirname, "../../..", imagePath))
+      ) {
         fs.unlinkSync(path.join(__dirname, "../../..", imagePath));
       }
       imagePath = `/uploads/${req.file.filename}`;
