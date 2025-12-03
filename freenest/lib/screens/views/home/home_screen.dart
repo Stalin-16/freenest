@@ -3,7 +3,6 @@ import 'package:freenest/screens/views/home/profile_list_screen.dart';
 import 'dart:async';
 import 'dart:math';
 import 'package:shimmer/shimmer.dart';
-// import 'package:freenest/widgets/service_card.dart';
 
 /// Lightweight ServiceCard used in grids. Replace with your own widget if needed.
 class ServiceCard extends StatelessWidget {
@@ -20,6 +19,10 @@ class ServiceCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.cardColor,
         borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: Colors.grey.shade400,
+          width: 0.5,
+        ),
         boxShadow: [
           BoxShadow(
             color: theme.shadowColor.withOpacity(0.06),
@@ -60,7 +63,110 @@ class ServiceCard extends StatelessWidget {
   }
 }
 
-/// Home screen with animated expand/collapse, shimmer first-load, dynamic search.
+/// Skeleton ServiceCard for loading state
+class ServiceCardSkeleton extends StatelessWidget {
+  const ServiceCardSkeleton({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Shimmer.fromColors(
+      baseColor: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
+      highlightColor: isDark ? Colors.grey.shade700 : Colors.grey.shade100,
+      child: Container(
+        decoration: BoxDecoration(
+          color: theme.cardColor,
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: [
+            BoxShadow(
+              color: theme.shadowColor.withOpacity(0.06),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            )
+          ],
+        ),
+        padding: const EdgeInsets.all(8),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Skeleton Image
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.grey.shade700 : Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            // Skeleton Title
+            Container(
+              width: double.infinity,
+              height: 16,
+              decoration: BoxDecoration(
+                color: isDark ? Colors.grey.shade700 : Colors.white,
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Container(
+              width: 80,
+              height: 12,
+              decoration: BoxDecoration(
+                color: isDark ? Colors.grey.shade700 : Colors.white,
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Skeleton for category header
+class CategoryHeaderSkeleton extends StatelessWidget {
+  const CategoryHeaderSkeleton({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Shimmer.fromColors(
+      baseColor: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
+      highlightColor: isDark ? Colors.grey.shade700 : Colors.grey.shade100,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Container(
+              width: 120,
+              height: 24,
+              decoration: BoxDecoration(
+                color: isDark ? Colors.grey.shade700 : Colors.white,
+                borderRadius: BorderRadius.circular(6),
+              ),
+            ),
+            Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                color: isDark ? Colors.grey.shade700 : Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Home screen with animated expand/collapse, skeleton loading, dynamic search.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
   @override
@@ -69,7 +175,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
-  bool _isLoading = true; // show shimmer on first load only
+  bool _isLoading = true; // show skeleton on first load only
   bool _initialLoadDone = false;
 
   // Hard-coded categories & items (each item has unique id)
@@ -177,7 +283,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         ? allTitles[rng.nextInt(allTitles.length)]
         : 'Search';
 
-    // Simulate shimmer loading on first load only (2.5s)
+    // Simulate skeleton loading on first load only (2.5s)
     _isLoading = true;
     Timer(const Duration(milliseconds: 2500), () {
       setState(() {
@@ -217,30 +323,103 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  Widget _buildShimmerGrid(int crossAxisCount) {
-    // show 6 placeholders (2 rows of 3)
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: 6,
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: crossAxisCount,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        childAspectRatio: 0.85,
-      ),
-      itemBuilder: (context, index) {
-        return Shimmer.fromColors(
-          baseColor: Theme.of(context).cardColor.withOpacity(0.6),
-          highlightColor: Theme.of(context).cardColor.withOpacity(0.3),
-          child: Container(
+  Widget _buildSkeletonLoading() {
+    final width = MediaQuery.of(context).size.width;
+    final crossAxisCount = width < 600 ? 3 : 5;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Shimmer.fromColors(
+      baseColor: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
+      highlightColor: isDark ? Colors.grey.shade700 : Colors.grey.shade100,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Skeleton search bar
+          Container(
+            height: 50,
             decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
-              borderRadius: BorderRadius.circular(10),
+              color: isDark ? Colors.grey.shade700 : Colors.white,
+              borderRadius: BorderRadius.circular(12),
             ),
           ),
-        );
-      },
+
+          const SizedBox(height: 18),
+
+          // Skeleton "Explore all service profiles" text
+          Container(
+            width: 180,
+            height: 20,
+            decoration: BoxDecoration(
+              color: isDark ? Colors.grey.shade700 : Colors.white,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // Skeleton categories with grids
+          Column(
+            children: List.generate(3, (catIndex) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Skeleton category header
+                  Padding(
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Container(
+                          width: 120,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            color: isDark ? Colors.grey.shade700 : Colors.white,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                        ),
+                        Container(
+                          width: 24,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            color: isDark ? Colors.grey.shade700 : Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Skeleton grid
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount:
+                        catIndex == 2 ? 4 : 3, // Different counts for variety
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
+                      childAspectRatio: 0.85,
+                    ),
+                    itemBuilder: (context, i) {
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.grey.shade700 : Colors.white,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: 18),
+                ],
+              );
+            }),
+          ),
+        ],
+      ),
     );
   }
 
@@ -258,19 +437,35 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: "Search for \"$_randomPlaceholder\"",
-                  prefixIcon: const Icon(Icons.search),
-                  filled: true,
-                  fillColor: theme.cardColor,
-                  contentPadding:
-                      const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
+              // Search Bar - Always visible
+              Container(
+                decoration: BoxDecoration(
+                  color: theme.cardColor,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: "Search for \"$_randomPlaceholder\"",
+                    hintStyle: _isLoading && !_initialLoadDone
+                        ? TextStyle(color: Colors.transparent)
+                        : null,
+                    prefixIcon: Icon(Icons.search,
+                        color: _isLoading && !_initialLoadDone
+                            ? Colors.transparent
+                            : theme.iconTheme.color),
+                    filled: true,
+                    fillColor: Colors.transparent,
+                    contentPadding: const EdgeInsets.symmetric(
+                        vertical: 12, horizontal: 12),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
                   ),
+                  style: _isLoading && !_initialLoadDone
+                      ? const TextStyle(color: Colors.transparent)
+                      : null,
                 ),
               ),
 
@@ -286,11 +481,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
               const SizedBox(height: 12),
 
-              // if loading: shimmer once on first load
+              // Show skeleton loading or actual content
               if (_isLoading && !_initialLoadDone)
-                _buildShimmerGrid(crossAxisCount)
+                _buildSkeletonLoading()
               else
-                // categories
+                // Actual categories content
                 Column(
                   children: List.generate(serviceCategories.length, (catIndex) {
                     final categoryData = serviceCategories[catIndex];

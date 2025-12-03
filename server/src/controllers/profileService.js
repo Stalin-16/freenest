@@ -73,18 +73,20 @@ const ServiceProfile = require("../model/admin/serviceProfile");
 // };
 
 // ✅ GET ALL
-
 exports.getAllProfilesForUsers = async (req, res) => {
   try {
     const categoryID = req.query.serviceSubCategoryId;
-    const { limit = 10, offset = 0 } = req.query;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = parseInt(req.query.offset) || 0;
+
     if (!categoryID) {
       return res.status(400).json({
         status: 400,
         message: "categoryId query parameter is required",
       });
     }
-    const profiles = await ServiceProfile.findAll({
+
+    const { count, rows: profiles } = await ServiceProfile.findAndCountAll({
       where: { serviceSubCategoryId: categoryID },
       attributes: [
         "id",
@@ -96,11 +98,25 @@ exports.getAllProfilesForUsers = async (req, res) => {
         "experienceRange",
       ],
       order: [["serviceTitle", "ASC"]],
-      offset: parseInt(offset),
-      limit: parseInt(limit),
+      offset,
+      limit,
     });
 
-    res.json({ status: 200, data: profiles });
+    const page = Math.floor(offset / limit) + 1;
+    const totalPages = Math.ceil(count / limit);
+    const hasNext = page < totalPages;
+
+    res.json({
+      status: 200,
+      data: {
+        total: count,
+        limit,
+        page,
+        totalPages,
+        hasNext,
+        profiles,
+      },
+    });
   } catch (error) {
     res.status(500).json({ status: 500, message: error.message });
   }

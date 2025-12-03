@@ -4,6 +4,7 @@ import 'package:freenest/model/profile_name.dart';
 import 'package:freenest/screens/views/home/draggable_pop.dart';
 import 'package:freenest/service/profile_service.dart';
 import 'package:freenest/widgets/reffera_card_widget.dart';
+import 'package:freenest/widgets/shimmer_efferct.dart';
 
 class ProfileListScreen extends StatefulWidget {
   static const routeName = "/profile-list";
@@ -17,77 +18,111 @@ class ProfileListScreen extends StatefulWidget {
 
 class _ProfileListScreenState extends State<ProfileListScreen> {
   final ProfileService _profileService = ProfileService();
+  final ScrollController _scrollController = ScrollController();
 
   bool _isLoading = false;
+  bool _isLoadingMore = false;
+  int _currentPage = 1;
+  final int _pageSize = 8;
+  bool _hasMoreData = true;
+  int _totalProfiles = 0;
   List<ProfileList> _profiles = [];
 
   @override
   void initState() {
     super.initState();
-    _loadProfiles();
+    _loadInitialProfiles();
+    _scrollController.addListener(_onScroll);
   }
 
-  Future<void> _loadProfiles() async {
-    setState(() => _isLoading = true);
-
-    await Future.delayed(const Duration(milliseconds: 500)); // Fake delay
-
-    // DUMMY DATA (Test Purposes Only)
-    _profiles = [
-      ProfileList(
-        id: 1,
-        serviceTitle: "Flutter Developer L3",
-        experience: "3 Years",
-        rating: 4.9,
-        workOrders: 3500,
-        price: 500,
-        profileImage: "https://cdn-icons-png.flaticon.com/512/5968/5968885.png",
-      ),
-      ProfileList(
-        id: 2,
-        serviceTitle: "Node.js Backend Engineer",
-        experience: "2 Years",
-        rating: 4.7,
-        workOrders: 2100,
-        price: 450,
-        profileImage: "https://cdn-icons-png.flaticon.com/512/919/919825.png",
-      ),
-      ProfileList(
-        id: 3,
-        serviceTitle: "Java Spring Boot Developer",
-        experience: "2.5 Years",
-        rating: 4.8,
-        workOrders: 2600,
-        price: 550,
-        profileImage: "https://cdn-icons-png.flaticon.com/512/226/226777.png",
-      ),
-    ];
-
-    setState(() => _isLoading = false);
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 100 &&
+        !_scrollController.position.outOfRange) {
+      if (_hasMoreData && !_isLoadingMore && !_isLoading) {
+        _loadMoreProfiles();
+      }
+    }
   }
 
-  Future<void> _loadProfilesss() async {
-    setState(() => _isLoading = true);
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadInitialProfiles() async {
+    setState(() {
+      _isLoading = true;
+      _currentPage = 1;
+      _profiles = [];
+    });
 
     try {
-      final List<ProfileList> data = await _profileService.getAllProfiles();
+      final response = await _profileService.getProfilesPaginated(
+        serviceSubCategoryId: widget.profileId ?? 0,
+        page: 1,
+        limit: _pageSize,
+      );
+
       setState(() {
-        _profiles = data;
-        _isLoading = false;
+        _profiles = response.data;
+        _totalProfiles = response.total;
+        _hasMoreData = response.hasNext;
+        _currentPage = response.page;
       });
     } catch (e) {
-      print("Profile loading failed: $e");
+      print("Initial profiles loading failed: $e");
+      _showErrorSnackbar("Failed to load profiles");
+    } finally {
       setState(() => _isLoading = false);
     }
+  }
+
+  void _showErrorSnackbar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+
+  Future<void> _loadMoreProfiles() async {
+    if (_isLoadingMore || !_hasMoreData || _isLoading) return;
+
+    setState(() => _isLoadingMore = true);
+
+    try {
+      final nextPage = _currentPage + 1;
+      final response = await _profileService.getProfilesPaginated(
+        serviceSubCategoryId: widget.profileId ?? 0,
+        page: nextPage,
+        limit: _pageSize,
+      );
+
+      setState(() {
+        _profiles.addAll(response.data);
+        _totalProfiles = response.total;
+        _hasMoreData = response.hasNext;
+        _currentPage = response.page;
+      });
+    } catch (e) {
+      print("Load more profiles failed: $e");
+      _showErrorSnackbar("Failed to load more profiles");
+    } finally {
+      setState(() => _isLoadingMore = false);
+    }
+  }
+
+  Future<void> _refreshProfiles() async {
+    await _loadInitialProfiles();
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final w = MediaQuery.of(context).size.width;
-
-    final bool isWide = w > 600;
-    final double avatarSize = isWide ? 56 : 48;
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -99,296 +134,266 @@ class _ProfileListScreenState extends State<ProfileListScreen> {
               size: 16, color: theme.colorScheme.onSurface),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text("Profiles"),
+        title: const Text("Profiles",
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600)),
       ),
       body: Column(
         children: [
-          _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : _profiles.isEmpty
-                  ? const Center(child: Text("No profiles available"))
-                  : Expanded(
-                      child: ListView.separated(
-                        itemCount: _profiles.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 12),
-                        itemBuilder: (context, index) {
-                          final p = _profiles[index];
-
-                          return Card(
-                            elevation: 1.2,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12)),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  vertical: 12, horizontal: 12),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  // Left: Avatar
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(10),
-                                    child: Container(
-                                      width: 48,
-                                      height: 48,
-                                      color: Colors.grey[200],
-                                      child: Image.network(
-                                        p.profileImage.isNotEmpty
-                                            ? "${AppConfig.imageUrl}${p.profileImage}"
-                                            : "https://cdn-icons-png.flaticon.com/512/1946/1946429.png",
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) =>
-                                            const Icon(Icons.broken_image,
-                                                size: 32),
-                                      ),
-                                    ),
+          Expanded(
+            child: _isLoading && _profiles.isEmpty
+                ? buildShimmerSkeletonEffect()
+                : _profiles.isEmpty
+                    ? const Center(child: Text("No profiles available"))
+                    : NotificationListener<ScrollNotification>(
+                        onNotification: (ScrollNotification scrollInfo) {
+                          if (scrollInfo.metrics.pixels >=
+                                  scrollInfo.metrics.maxScrollExtent - 100 &&
+                              !_isLoadingMore &&
+                              _hasMoreData &&
+                              !_isLoading) {
+                            _loadMoreProfiles();
+                          }
+                          return false;
+                        },
+                        child: RefreshIndicator(
+                          onRefresh: _refreshProfiles,
+                          child: ListView.builder(
+                            controller: _scrollController,
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            itemCount:
+                                _profiles.length + (_hasMoreData ? 1 : 0),
+                            itemBuilder: (context, index) {
+                              // Show loading indicator at the bottom
+                              if (index >= _profiles.length) {
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 16.0),
+                                  child: Center(
+                                    child: _isLoadingMore
+                                        ? const CircularProgressIndicator()
+                                        : _hasMoreData
+                                            ? const SizedBox.shrink()
+                                            : const Padding(
+                                                padding: EdgeInsets.all(16.0),
+                                                child: Text(
+                                                  "No more profiles",
+                                                  style: TextStyle(
+                                                      color: Colors.grey),
+                                                ),
+                                              ),
                                   ),
-                                  const SizedBox(width: 12),
+                                );
+                              }
 
-                                  // Middle: Title, Experience, Rating
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          p.serviceTitle,
-                                          style: const TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.w600),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Row(
-                                          children: [
-                                            const Icon(Icons.work_outline,
-                                                size: 14, color: Colors.grey),
-                                            const SizedBox(width: 4),
-                                            Expanded(
-                                              child: Text(
-                                                p.experience,
-                                                style: const TextStyle(
-                                                    fontSize: 12,
-                                                    color: Colors.grey),
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Row(
-                                          children: [
-                                            const Icon(Icons.star,
-                                                color: Colors.amber, size: 14),
-                                            const SizedBox(width: 4),
-                                            Expanded(
-                                              child: Text(
-                                                "${p.rating} • ${p.workOrders} Work Orders",
-                                                style: const TextStyle(
-                                                    fontSize: 12,
-                                                    color: Colors.green),
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ),
-                                            GestureDetector(
-                                              onTap: () =>
-                                                  showProfileDetailsBottomSheet(
-                                                      context, p),
-                                              child: const Text(
-                                                "View details",
-                                                style: TextStyle(
-                                                    color: Colors.orange,
-                                                    fontWeight:
-                                                        FontWeight.w600),
-                                              ),
-                                            )
-                                          ],
-                                        ),
-                                      ],
-                                    ),
+                              final p = _profiles[index];
+
+                              return Container(
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(12),
+                                  color: theme.cardColor,
+                                  border: Border.all(
+                                    color: Colors.grey.shade300,
+                                    width: 1,
                                   ),
-
-                                  // Right: Price + Add button
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12.0),
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      Text(
-                                        "Rs. ${p.price.toStringAsFixed(0)} / hour",
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.indigo),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      SizedBox(
-                                        height: 32,
-                                        child: ElevatedButton(
-                                          onPressed: () {
-                                            print("Add pressed for ${p.id}");
-                                          },
-                                          style: ElevatedButton.styleFrom(
-                                            padding: const EdgeInsets.symmetric(
-                                                horizontal: 16),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
+                                      // Profile Image
+                                      Container(
+                                        width: 60,
+                                        height: 60,
+                                        decoration: BoxDecoration(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          color: Colors.grey.shade200,
+                                        ),
+                                        child: ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          child: Image.network(
+                                            p.profileImage.isNotEmpty
+                                                ? "${AppConfig.imageUrl}${p.profileImage}"
+                                                : "https://cdn-icons-png.flaticon.com/512/1946/1946429.png",
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (_, __, ___) => Icon(
+                                              Icons.person,
+                                              size: 30,
+                                              color: Colors.grey.shade600,
                                             ),
-                                            backgroundColor: Colors.grey[800],
-                                          ),
-                                          child: const Text(
-                                            "Add",
-                                            style:
-                                                TextStyle(color: Colors.white),
                                           ),
                                         ),
+                                      ),
+                                      const SizedBox(width: 12),
+
+                                      // Middle Section - Details
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            // Title
+                                            Text(
+                                              p.serviceTitle,
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w600,
+                                                color: Colors.black,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            const SizedBox(height: 4),
+
+                                            // Experience
+                                            Row(
+                                              children: [
+                                                Icon(
+                                                  Icons.work,
+                                                  color: Colors.grey.shade700,
+                                                  size: 12,
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  "${p.experience} Years Experience",
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    color: Colors.grey.shade700,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 4),
+
+                                            // Rating and Work Orders
+                                            Row(
+                                              children: [
+                                                Icon(
+                                                  Icons.star,
+                                                  color: Colors.amber.shade700,
+                                                  size: 16,
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  "${p.rating} (${_formatWorkOrders(p.workOrders)} Work Orders)",
+                                                  style: const TextStyle(
+                                                    fontSize: 13,
+                                                    color: Colors.black87,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 4),
+
+                                            // View details - on a separate line below rating
+                                            Align(
+                                              alignment: Alignment.centerLeft,
+                                              child: GestureDetector(
+                                                onTap: () =>
+                                                    showProfileDetailsBottomSheet(
+                                                        context, p),
+                                                child: const Text(
+                                                  "View details",
+                                                  style: TextStyle(
+                                                    fontSize: 13,
+                                                    color: Colors.orange,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+
+                                      // Right Section - Price and Add Button
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          // Price
+                                          Text(
+                                            "Rs. ${p.price.toStringAsFixed(0)} / hour",
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w700,
+                                              color: isDark
+                                                  ? Colors.white
+                                                  : Colors.black,
+                                            ),
+                                            textAlign: TextAlign.end,
+                                          ),
+                                          const SizedBox(height: 8),
+
+                                          // Add Button
+                                          SizedBox(
+                                            height: 32,
+                                            child: ElevatedButton(
+                                              onPressed: () {
+                                                print(
+                                                    "Add pressed for ${p.id}");
+                                              },
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor:
+                                                    Colors.grey.shade700,
+                                                foregroundColor: Colors.white,
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                  horizontal: 20,
+                                                  vertical: 0,
+                                                ),
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(6),
+                                                ),
+                                                elevation: 0,
+                                              ),
+                                              child: const Text(
+                                                "Add",
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ],
-                                  )
-                                ],
-                              ),
-                            ),
-                          );
-                        },
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
                       ),
-                    ),
-          const Spacer(),
-          ReferralCard(
-            onViewDetails: () {
-              print("Reffera view details tapped");
-            },
           ),
+          if (!_isLoading && _profiles.isNotEmpty)
+            ReferralCard(
+              onViewDetails: () {
+                print("Reffera view details tapped");
+              },
+            ),
         ],
       ),
     );
   }
-}
 
-class _ProfileHorizontalCard extends StatelessWidget {
-  final int id;
-  final String title;
-  final String experience;
-  final double rating;
-  final int workOrders;
-  final String price;
-  final String imageUrl;
-  final double avatarSize;
-  final VoidCallback onAdd;
-  final VoidCallback onViewDetails;
-
-  const _ProfileHorizontalCard({
-    Key? key,
-    required this.id,
-    required this.title,
-    required this.experience,
-    required this.rating,
-    required this.workOrders,
-    required this.price,
-    required this.imageUrl,
-    required this.avatarSize,
-    required this.onAdd,
-    required this.onViewDetails,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Card(
-      elevation: 1.2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-        child: Row(
-          children: [
-            // Avatar
-            ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: Container(
-                width: avatarSize + 10,
-                height: avatarSize + 10,
-                color: theme.cardColor,
-                child: Image.network(
-                  imageUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) =>
-                      const Icon(Icons.broken_image, size: 32),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-
-            // Middle content
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title,
-                      style: theme.textTheme.titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      const Icon(Icons.work_outline,
-                          size: 14, color: Colors.grey),
-                      const SizedBox(width: 6),
-                      Text(experience,
-                          style: theme.textTheme.bodySmall
-                              ?.copyWith(color: Colors.grey[700])),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      const Icon(Icons.star, color: Colors.amber, size: 14),
-                      const SizedBox(width: 4),
-                      Text(
-                        "$rating • $workOrders Work Orders",
-                        style: theme.textTheme.bodySmall
-                            ?.copyWith(color: Colors.green[700]),
-                      ),
-                      const SizedBox(width: 8),
-                      GestureDetector(
-                        onTap: onViewDetails,
-                        child: Text(
-                          "View details",
-                          style: TextStyle(
-                            color: Colors.orange[700],
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      )
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-            // Price + Add button
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  price,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.bold, color: Colors.indigo),
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  height: 36,
-                  child: ElevatedButton(
-                    onPressed: onAdd,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.grey[800],
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: const Text("Add"),
-                  ),
-                )
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
+  String _formatWorkOrders(int workOrders) {
+    if (workOrders >= 1000) {
+      return "${(workOrders / 1000).toStringAsFixed(2)}K";
+    }
+    return workOrders.toString();
   }
 }

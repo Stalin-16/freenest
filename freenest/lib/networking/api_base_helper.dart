@@ -78,7 +78,6 @@ class ApiBaseHelper {
 
     Map<String, String> requestHeader = {
       HttpHeaders.authorizationHeader: 'Bearer ${token!.accessToken!}'
-
     };
     //debugPrint("the token is the ::::::::::::::    ${token.toString()}");
     dynamic responseJson;
@@ -104,7 +103,7 @@ class ApiBaseHelper {
   }
 
   Future<dynamic> getwithoutToken(String url) async {
-    // debugPrint('Api Get, url $_baseUrl$url');
+    debugPrint('Api Get, url $_baseUrl$url');
     Map<String, String> requestHeader = {};
     dynamic responseJson;
     try {
@@ -165,7 +164,7 @@ class ApiBaseHelper {
       HttpHeaders.authorizationHeader: 'Bearer ${token!.accessToken!}',
       'Content-Type': 'application/json'
     };
-  
+
     dynamic responseJson;
     try {
       final response = await http
@@ -196,12 +195,11 @@ class ApiBaseHelper {
     try {
       final response = await http
           .post(
-            Uri.parse(
-              '$_baseUrl$url',
-            ),
-            headers: requestHeader,
-            body: jsonEncode(body)
-          )
+              Uri.parse(
+                '$_baseUrl$url',
+              ),
+              headers: requestHeader,
+              body: jsonEncode(body))
           .timeout(timeout, onTimeout: commonTimeReposne);
       responseJson = _returnResponse(response);
     } on SocketException {

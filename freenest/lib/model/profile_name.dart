@@ -19,12 +19,13 @@ class ProfileList {
   factory ProfileList.fromMap(Map<String, dynamic> map) {
     return ProfileList(
       id: map['id'],
-      serviceTitle: map['serviceTitle'] ?? '',
-      profileImage: map['profileImage'],
-      experience: map['experience'] ?? '',
+      serviceTitle: map['serviceTitle'] ??
+          (map['tagline'] ?? ''), // Use tagline as fallback
+      profileImage: map['profileImage'] ?? '',
+      experience: map['experienceRange'] ?? '',
       rating: map['rating']?.toDouble() ?? 0.0,
-      workOrders: map['workOrders'] ?? 0,
-      price: map['price']?.toDouble() ?? 0.0,
+      workOrders: 0, // Default
+      price: map['hourlyRate']?.toDouble() ?? 0.0,
     );
   }
 }
