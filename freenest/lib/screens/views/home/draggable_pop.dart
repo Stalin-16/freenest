@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:freenest/model/cart_model.dart';
+import 'package:freenest/service/cart_api_service.dart';
 import 'package:freenest/widgets/shimmer_efferct.dart';
-import 'package:shimmer/shimmer.dart';
 import 'package:freenest/config/app_config.dart';
 import 'package:freenest/model/profile_mode.dart';
 import 'package:freenest/model/profile_name.dart';
 import 'package:freenest/service/profile_service.dart';
-import 'dart:convert';
 
 void showProfileDetailsBottomSheet(BuildContext context, ProfileList p) {
   final ProfileService profileService = ProfileService();
@@ -48,6 +48,8 @@ class __ProfileDetailsSheetState extends State<_ProfileDetailsSheet> {
   bool _hasError = false;
   final ScrollController _scrollController = ScrollController();
 
+  final CartApiService _cartApiService = CartApiService();
+
   @override
   void initState() {
     super.initState();
@@ -76,8 +78,22 @@ class __ProfileDetailsSheetState extends State<_ProfileDetailsSheet> {
     }
   }
 
-  int _selectedHours = 15;
-  final List<int> _hourOptions = [5, 10, 15, 20, 25, 30, 40, 50];
+  int _selectedHours = 1;
+  final List<int> _hourOptions = [1, 5, 10, 15, 20, 25, 30, 40, 50];
+
+  Future<CartItemModel> _addToCart(Map<String, dynamic> product) async {
+    try {
+      final cartItem = await _cartApiService.addToCart(product);
+      if (cartItem != null) {
+        return cartItem;
+      } else {
+        throw Exception("Failed to add item to cart - API returned null");
+      }
+    } catch (e) {
+      print('Error in _addToCart: $e');
+      throw Exception("Failed to add item to cart: $e");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -791,9 +807,19 @@ class __ProfileDetailsSheetState extends State<_ProfileDetailsSheet> {
                                           vertical: 12,
                                         ),
                                       ),
-                                      onPressed: () {
-                                        print(
-                                            "Add to cart pressed for ${_profile.id} with $_selectedHours hours");
+                                      onPressed: () async {
+                                        final cartItem = {
+                                          'profile_id': _profile.id,
+                                          'user_id': _profile.serviceTitle,
+                                          'quantity': _selectedHours,
+                                          'price_per_unit': _profile.price,
+                                          'total_price':
+                                              _profile.price * _selectedHours,
+                                          'cart_status': 'active'
+                                        };
+
+                                        await _addToCart(cartItem);
+
                                         Navigator.pop(context);
                                       },
                                       child: const Text(

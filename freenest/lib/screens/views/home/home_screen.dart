@@ -38,15 +38,14 @@ class ServiceCard extends StatelessWidget {
           // Image
           Expanded(
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.network(
-                imgUrl,
-                fit: BoxFit.contain,
-                width: double.infinity,
-                errorBuilder: (_, __, ___) =>
-                    const Icon(Icons.broken_image_outlined, size: 40),
-              ),
-            ),
+                borderRadius: BorderRadius.circular(8),
+                child: Image.asset(
+                  imgUrl,
+                  fit: BoxFit.contain,
+                  width: double.infinity,
+                  errorBuilder: (_, __, ___) =>
+                      const Icon(Icons.broken_image_outlined, size: 40),
+                )),
           ),
           const SizedBox(height: 8),
           // Title
@@ -186,17 +185,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         {
           "id": 101,
           "title": "Business Analyst",
-          "img": "https://cdn-icons-png.flaticon.com/512/3135/3135692.png",
+          "img": "images/home/bussines.png",
         },
         {
           "id": 102,
           "title": "Salesforce Business Analyst",
-          "img": "https://cdn-icons-png.flaticon.com/512/5968/5968914.png",
+          "img": "images/home/salesforce.png",
         },
         {
           "id": 103,
           "title": "Quality Analyst",
-          "img": "https://cdn-icons-png.flaticon.com/512/1698/1698535.png",
+          "img": "images/home/QA.png",
         },
       ]
     },
@@ -206,17 +205,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         {
           "id": 201,
           "title": "PHP Developer",
-          "img": "https://cdn-icons-png.flaticon.com/512/919/919830.png",
+          "img": "images/home/php.png",
         },
         {
           "id": 202,
           "title": "Node JS Developer",
-          "img": "https://cdn-icons-png.flaticon.com/512/919/919825.png",
+          "img": "images/home/nodejs.png",
         },
         {
           "id": 203,
           "title": "Java Developer",
-          "img": "https://cdn-icons-png.flaticon.com/512/226/226777.png",
+          "img": "images/home/java.png",
         },
       ]
     },
@@ -226,22 +225,22 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         {
           "id": 301,
           "title": "Flutter Developer",
-          "img": "https://cdn-icons-png.flaticon.com/512/888/888859.png",
+          "img": "images/home/flutter.jpg",
         },
         {
           "id": 302,
           "title": "React Native Developer",
-          "img": "https://cdn-icons-png.flaticon.com/512/919/919851.png",
+          "img": "images/home/reactnative.png",
         },
         {
           "id": 303,
           "title": "iOS Developer",
-          "img": "https://cdn-icons-png.flaticon.com/512/731/731985.png",
+          "img": "images/home/ios.png",
         },
         {
           "id": 304,
           "title": "Kotlin Developer",
-          "img": "https://cdn-icons-png.flaticon.com/512/732/732212.png",
+          "img": "images/home/kotlin.webp",
         },
       ]
     },

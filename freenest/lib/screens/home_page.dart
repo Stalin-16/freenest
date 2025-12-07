@@ -5,6 +5,7 @@ import 'package:freenest/screens/views/home/home_screen.dart';
 import 'package:freenest/screens/views/order/order_screen.dart';
 import 'package:freenest/screens/views/profile/profile_screen.dart';
 import 'package:freenest/service/cart_service.dart';
+import 'package:freenest/service/shared_service.dart';
 
 class HomePage extends StatefulWidget {
   static String routeName = UiScreenRoutes.home;
@@ -42,6 +43,12 @@ class _HomePageState extends State<HomePage> {
     setState(() => _cartCount = cart.length);
   }
 
+  void _logout() async {
+    await SharedService.logggedOutWithOutContext();
+    if (!mounted) return;
+    Navigator.pushReplacementNamed(context, '/login');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -51,7 +58,7 @@ class _HomePageState extends State<HomePage> {
               ? ""
               : _selectedIndex == 1
                   ? "Orders"
-                  : "Profile",
+                  : "Account",
         ),
         actions: _selectedIndex == 0 // Show actions only for Home screen
             ? [

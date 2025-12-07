@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:freenest/constants/ui_screen_routes.dart';
 import 'package:freenest/model/cart_model.dart';
+import 'package:freenest/model/user_model.dart';
 import 'package:freenest/service/cart_api_service.dart';
 import 'package:freenest/service/cart_service.dart';
 import 'package:freenest/service/shared_service.dart';
@@ -22,23 +23,36 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   @override
   void initState() {
     super.initState();
-    _loadCart();
+    _checkLoginStatus();
+  }
+
+  Future<void> _checkLoginStatus() async {
+    isLoggedIn = await SharedService.isLoggedIn();
+    if (isLoggedIn) {
+      await _loadCart();
+    } else {
+      setState(() {
+        isLoading = false;
+      });
+    }
   }
 
   Future<void> _loadCart() async {
+    UserModel? user = await SharedService.getUser();
     setState(() => isLoading = true);
 
-    isLoggedIn = await SharedService.isLoggedIn();
-
-    if (isLoggedIn) {
-      final apiCart = await CartApiService.getCart();
-      cart = apiCart.map((e) => e.toMap()).toList();
-    } else {
-      List<CartItemModel> localCart = await CartService.getCart();
-      cart = localCart.map((e) => e.toMap()).toList();
+    try {
+      List<CartItemModel> loadedCart = [];
+      if (user != null) {
+        loadedCart = await CartApiService.getCart(user.id!);
+      }
+      setState(() {
+        cart = loadedCart.map((item) => item.toMap()).toList();
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() => isLoading = false);
     }
-
-    setState(() => isLoading = false);
   }
 
   double get totalAmount {
@@ -53,11 +67,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         await CartApiService.checkout();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Order placed successfully!')),
-        );
-      } else {
-        await CartService.clearCart();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Order placed (local mode).')),
         );
       }
       Navigator.pop(context);

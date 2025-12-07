@@ -12,32 +12,83 @@ const transporter = nodemailer.createTransport({
 });
 
 const sendOtp = async (req, res) => {
-  const { email } = req.body;
-  const otp = generateOTP();
-  const otpExpires = new Date(Date.now() + 5 * 60 * 1000); // 5 min
+  const { email, name } = req.body;
 
-  let user = await User.findOne({ where: { email } });
+  if (!email && !name) {
+    return res.status(400).json({
+      status: 400,
+      message: "Either email or name is required",
+    });
+  }
+
+  const otp = generateOTP();
+  const otpExpires = new Date(Date.now() + 5 * 60 * 1000);
+
+  let user = null;
+
+  // Search priority: email first, then name
+  if (email) {
+    user = await User.findOne({ where: { email } });
+  }
+
+  let foundByName = false;
+  if (!user && name) {
+    foundByName = true;
+    user = await User.findOne({ where: { name } });
+  }
+
   if (!user) {
+    // Create new user - require email for new registrations
+    if (!email) {
+      return res.status(400).json({
+        status: 400,
+        message: "Email is required for new user registration",
+      });
+    }
+
     user = await User.create({
       email,
-      user_name: email.split("@")[0],
+      name: name || email.split("@")[0], // Use provided name if available
       otp,
-      otp_expires,
+      otpExpires,
     });
   } else {
+    // Update user
     user.otp = otp;
-    user.otp_expires = otpExpires;
+    user.otpExpires = otpExpires;
+
+    // If user was found by name and email was provided in request, update the email
+    if (foundByName && email) {
+      user.email = email;
+    }
+
+    // Also update name if email is provided and user doesn't have a name
+    if (foundByName && email) {
+      user.name = email.split("@")[0];
+    }
+
     await user.save();
   }
 
-  await transporter.sendMail({
-    from: process.env.EMAIL_USER,
-    to: email,
-    subject: "Your OTP Code",
-    text: `Your OTP is ${otp}. It expires in 5 minutes.`,
-  });
+  // Send OTP email
+  if (user.email) {
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: user.email,
+      subject: "Your OTP Code",
+      text: `Your OTP is ${otp}. It expires in 5 minutes.`,
+    });
 
-  res.json({ message: "OTP sent to email" });
+    return res.status(200).json({
+      status: 200,
+      message: "OTP sent to email",
+    });
+  } else {
+    return res.status(200).json({
+      status: 200,
+      message: "OTP updated but no email available to send",
+    });
+  }
 };
 
 verifyOtp = async (req, res) => {
@@ -50,11 +101,30 @@ verifyOtp = async (req, res) => {
     return res.status(400).json({ message: "OTP expired" });
 
   user.otp = null;
-  user.otp_expires = null;
+  user.otpExpires = null;
   await user.save();
 
   const token = generateToken(user);
-  res.json({ message: "OTP verified", token });
+  return res.status(200).json({
+    status: 200,
+    message: "OTP verified",
+
+    data: {
+      token: {
+        access_token: token,
+        expires_in: 3600,
+        scope: "user",
+        token_type: "Bearer",
+      },
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        isGuest: false,
+      },
+    },
+  });
 };
 
 googleLogin = async (req, res) => {
@@ -78,4 +148,51 @@ googleLogin = async (req, res) => {
   });
 };
 
-module.exports = { sendOtp, verifyOtp, googleLogin };
+const generateGuestToken = async (req, res) => {
+  try {
+    const guestId = `guest_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+
+    const guestUser = await User.create({
+      name: `Guest_${guestId}`,
+      email: `${guestId}@temporary.guest`,
+      role: "guest",
+      isTemporary: true,
+      createdAt: new Date(),
+      // deleteAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    });
+
+    // Generate token for guest
+    const token = generateToken({
+      id: guestUser._id,
+      role: "guest",
+    });
+
+    return res.status(200).json({
+      status: 200,
+      message: "Guest session created",
+      data: {
+        token: {
+          access_token: token,
+          expires_in: 3600,
+          scope: "user",
+          token_type: "Bearer",
+        },
+        user: {
+          id: guestUser.id,
+          name: guestUser.name,
+          email: guestUser.email,
+          role: guestUser.role,
+          isGuest: true,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Guest token generation error:", error);
+    return res.status(500).json({
+      status: 500,
+      message: "Failed to create guest session",
+    });
+  }
+};
+
+module.exports = { sendOtp, verifyOtp, googleLogin, generateGuestToken };

@@ -70,7 +70,6 @@ class SharedService {
   }
 
   static Future<void> setUser(UserModel? userModel) async {
-    debugPrint('userModel::ss$userModel');
     if (userModel != null) {
       final SharedPreferences storage = await _storage;
       storage.setString("user", userModel.toJson());
@@ -103,7 +102,11 @@ class SharedService {
 
   static Future<bool> isLoggedIn() async {
     TokenModel? token = await SharedService.getToken();
-    return token != null && token.accessToken != null;
+    UserModel? user = await SharedService.getUser();
+    return token != null &&
+        token.accessToken != null &&
+        user != null &&
+        user.isGuest == false;
   }
 
   static Future<UserModel?> getUser() async {

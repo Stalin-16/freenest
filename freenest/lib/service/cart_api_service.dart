@@ -5,14 +5,11 @@ import 'package:freenest/networking/api_base_helper.dart';
 
 class CartApiService {
   static final ApiBaseHelper _api = ApiBaseHelper();
-   static  String baseUrl = AppConfig.customerAPI;
+  static String baseUrl = AppConfig.customerAPI;
 
-   Future<CartItemModel?> addToCart(Map<String, dynamic> item) async {
+  Future<CartItemModel?> addToCart(Map<String, dynamic> item) async {
     try {
-      final response = await _api.post(
-        "$baseUrl/cart/add",
-        item
-      );
+      final response = await _api.post("$baseUrl/cart/add", item);
 
       final result = CommonResponseModel.fromMap(response);
 
@@ -28,8 +25,8 @@ class CartApiService {
     }
   }
 
-  static Future<List<CartItemModel>> getCart() async {
-    final response = await _api.get ("$baseUrl/cart/get");
+  static Future<List<CartItemModel>> getCart(int userId) async {
+    final response = await _api.get("$baseUrl/cart/get");
 
     final result = CommonResponseModel.fromMap(response);
 
@@ -53,10 +50,10 @@ class CartApiService {
   static Future<CommonResponseModel> updateQuantity(
       String productId, int newQuantity) async {
     final body = {
-      "productId": productId,
+      "profile_id": productId,
       "quantity": newQuantity,
     };
-    final response = await _api.post("/cart/update", body);
+    final response = await _api.post("$baseUrl/cart/update", body);
     return CommonResponseModel.fromMap(response);
   }
 
@@ -66,8 +63,8 @@ class CartApiService {
   }
 
   static Future<CommonResponseModel> checkout() async {
-    const data={};
-    final response = await _api.post("$baseUrl/cart/checkout",data);
+    const data = {};
+    final response = await _api.post("$baseUrl/cart/checkout", data);
     return CommonResponseModel.fromMap(response);
   }
 }

@@ -8,7 +8,7 @@ class OrderApiService {
   static String baseUrl = AppConfig.customerAPI;
   static Future<List<OrderModel>> getOrders() async {
     final res = await _api.get('$baseUrl/order/get-all-orders');
-   // If using CommonResponseModel
+    // If using CommonResponseModel
     final result = CommonResponseModel.fromMap(res);
 
     if (result.status == 200) {

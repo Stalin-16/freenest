@@ -8,6 +8,7 @@ class UserModel {
   String? email;
   String? emailVerifiedAt;
   String? password;
+  bool? isGuest;
   UserModel({
     this.id,
     this.name,
@@ -16,6 +17,7 @@ class UserModel {
     this.email,
     this.emailVerifiedAt,
     this.password,
+    this.isGuest,
   });
 
   UserModel copyWith({
@@ -26,6 +28,7 @@ class UserModel {
     String? email,
     String? emailVerifiedAt,
     String? password,
+    bool? isGuest,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -35,6 +38,7 @@ class UserModel {
       email: email ?? this.email,
       emailVerifiedAt: emailVerifiedAt ?? this.emailVerifiedAt,
       password: password ?? this.password,
+      isGuest: isGuest ?? this.isGuest,
     );
   }
 
@@ -47,6 +51,7 @@ class UserModel {
       'email': email,
       'emailVerifiedAt': emailVerifiedAt,
       'password': password,
+      'isGuest': isGuest,
     };
   }
 
@@ -61,6 +66,7 @@ class UserModel {
           ? map['emailVerifiedAt'] as String
           : null,
       password: map['password'] != null ? map['password'] as String : null,
+      isGuest: map['isGuest'] != null ? map['isGuest'] as bool : null,
     );
   }
 
@@ -71,7 +77,7 @@ class UserModel {
 
   @override
   String toString() {
-    return 'UserModel(id: $id, name: $name, lastName: $lastName, userName: $userName, email: $email, emailVerifiedAt: $emailVerifiedAt, password: $password)';
+    return 'UserModel(id: $id, name: $name, lastName: $lastName, userName: $userName, email: $email, emailVerifiedAt: $emailVerifiedAt, password: $password) isGuest: $isGuest)';
   }
 
   @override
@@ -84,7 +90,8 @@ class UserModel {
         other.userName == userName &&
         other.email == email &&
         other.emailVerifiedAt == emailVerifiedAt &&
-        other.password == password;
+        other.password == password &&
+        other.isGuest == isGuest;
   }
 
   @override
@@ -95,6 +102,7 @@ class UserModel {
         userName.hashCode ^
         email.hashCode ^
         emailVerifiedAt.hashCode ^
-        password.hashCode;
+        password.hashCode ^
+        isGuest.hashCode;
   }
 }

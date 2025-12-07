@@ -8,33 +8,44 @@ const baseUrl = AppConfig.baseUrl;
 
 class AuthService {
   final ApiBaseHelper _helper = ApiBaseHelper();
-  Future<Map<String, dynamic>> sendOtp(String email) async {
-    final res = await _helper.post(
-      "/send-otp",
-      jsonEncode({'email': email}),
-    );
-    return jsonDecode(res.body);
-  }
-
-  Future<Map<String, dynamic>> verifyOtp(String email, String otp) async {
-    final res = await http.post(
-      Uri.parse('$baseUrl/verify-otp'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'email': email, 'otp': otp}),
-    );
-    return jsonDecode(res.body);
-  }
-
-Future<CommonResponseModel> googleLogin(
-    String email, String googleId, String? name) async {
-  try {
+  Future<CommonResponseModel> sendOtp(String email, String name) async {
     final res = await _helper.postWithoutToken(
-      "${AppConfig.oauthAPI}/google-login",
-      {"email": email, "googleId": googleId, "user_name": name},
+      "${AppConfig.oauthAPI}/send-otp",
+      {"email": email, "name": name},
     );
     return CommonResponseModel.fromMap(res);
-  } catch (e) {
-    throw Exception("Google login failed: $e");
   }
-}
+
+  Future<CommonResponseModel> verifyOtp(String email, String otp) async {
+    final res = await _helper.postWithoutToken(
+      "${AppConfig.oauthAPI}/verify-otp",
+      {'email': email, 'otp': otp},
+    );
+    return CommonResponseModel.fromMap(res);
+  }
+
+  Future<CommonResponseModel> googleLogin(
+      String email, String googleId, String? name) async {
+    try {
+      final res = await _helper.postWithoutToken(
+        "${AppConfig.oauthAPI}/google-login",
+        {"email": email, "googleId": googleId, "user_name": name},
+      );
+      return CommonResponseModel.fromMap(res);
+    } catch (e) {
+      throw Exception("Google login failed: $e");
+    }
+  }
+
+  Future<CommonResponseModel> guestLogin() async {
+    try {
+      final res = await _helper.postWithoutToken(
+        "${AppConfig.oauthAPI}/guest-login",
+        {},
+      );
+      return CommonResponseModel.fromMap(res);
+    } catch (e) {
+      throw Exception("Guest login failed: $e");
+    }
+  }
 }

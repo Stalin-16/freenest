@@ -129,7 +129,7 @@ class ApiBaseHelper {
   Future<dynamic> post(String url, dynamic body) async {
     debugPrint('Api Post, url  $_baseUrl$url');
     TokenModel? token = await SharedService.getToken();
-    print(token);
+    debugPrint("the token is the ::::::::::::::    ${token.toString()}");
     Map<String, String> requestHeader = {
       HttpHeaders.authorizationHeader: 'Bearer ${token!.accessToken!}',
       'Content-Type': 'application/json'

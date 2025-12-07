@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:freenest/constants/ui_screen_routes.dart';
+import 'package:freenest/service/shared_service.dart';
 
 class SplashScreen extends StatefulWidget {
   static String routeName = UiScreenRoutes.splash;
+
   const SplashScreen({Key? key}) : super(key: key);
 
   @override
@@ -13,11 +15,23 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    // Navigate to next screen after 3 seconds
-    Future.delayed(const Duration(seconds: 2), () {
-      Navigator.pushNamedAndRemoveUntil(
-          context, '/home', (Route<dynamic> route) => false);
-    });
+    _navigateToNextScreen();
+  }
+
+  bool isLoggedIn = false;
+
+  void _navigateToNextScreen() async {
+    isLoggedIn = await SharedService.isLoggedIn();
+    if (isLoggedIn) {
+      Navigator.pushReplacementNamed(context, "/home");
+      return;
+    }
+    Navigator.pushReplacementNamed(context, "/login");
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 
   @override

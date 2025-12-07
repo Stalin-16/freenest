@@ -19,16 +19,16 @@ const User = sequelize.define(
     // Email (unique identifier)
     email: {
       type: DataTypes.STRING,
-      allowNull: false,
+      // allowNull: false,
       unique: true,
     },
 
     // Google ID (used for OAuth login)
-    googleId: {
-      type: DataTypes.STRING,
-      allowNull: true,
-      unique: true,
-    },
+    // googleId: {
+    //   type: DataTypes.STRING,
+    //   allowNull: true,
+    //   unique: true,
+    // },
 
     // Optional password (for non-Google users)
     password: {
@@ -38,7 +38,7 @@ const User = sequelize.define(
 
     // Role-based access (default user)
     role: {
-      type: DataTypes.ENUM("user", "admin"),
+      type: DataTypes.ENUM("user", "admin", "guest"),
       allowNull: false,
       defaultValue: "user",
     },

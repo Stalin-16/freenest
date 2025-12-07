@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:freenest/model/order_model.dart';
-import 'package:freenest/service/oerder_service.dart';
+import 'package:freenest/service/order_service.dart';
 import 'package:freenest/service/review_service.dart';
 
 class OrderScreen extends StatefulWidget {
@@ -45,7 +45,7 @@ class _OrderScreenState extends State<OrderScreen> {
 
     try {
       setState(() => isLoading = true);
-      
+
       await ReviewApiService.submitReview(
         orderId: orderId,
         rating: rating,
@@ -54,11 +54,10 @@ class _OrderScreenState extends State<OrderScreen> {
 
       // Refresh orders to get updated data with review
       await _fetchOrders();
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Review submitted successfully!")),
       );
-      
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to submit review: $e')),
@@ -182,7 +181,8 @@ class _OrderScreenState extends State<OrderScreen> {
                   itemBuilder: (context, index) {
                     final order = orders[index];
                     final statusColor = _getStatusColor(order.status, context);
-                    final isCompleted = order.status.toLowerCase() == "completed";
+                    final isCompleted =
+                        order.status.toLowerCase() == "completed";
                     final isReviewed = order.status.toLowerCase() == "reviewed";
                     final hasReview = order.review != null;
 
@@ -232,29 +232,34 @@ class _OrderScreenState extends State<OrderScreen> {
                                 ),
                               ],
                             ),
-                            
+
                             const SizedBox(height: 8),
-                            
+
                             // Order summary
                             Text(
                               "Items: ${order.totalItems} | ₹${order.totalPrice.toStringAsFixed(2)}",
-                              style: const TextStyle(fontWeight: FontWeight.w500),
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w500),
                             ),
-                            
+
                             Text(
                               "Date: ${order.createdAt.toLocal().toString().split(' ')[0]}",
                               style: TextStyle(
-                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withOpacity(0.6),
                                 fontSize: 12,
                               ),
                             ),
-                            
+
                             // Show review rating if exists
                             if (hasReview) ...[
                               const SizedBox(height: 8),
                               Row(
                                 children: [
-                                  Icon(Icons.star, color: Colors.amber, size: 16),
+                                  Icon(Icons.star,
+                                      color: Colors.amber, size: 16),
                                   const SizedBox(width: 4),
                                   Text(
                                     "Rated: ${order.review!.rating}/5",
@@ -266,36 +271,38 @@ class _OrderScreenState extends State<OrderScreen> {
                                 ],
                               ),
                             ],
-                            
+
                             const SizedBox(height: 12),
                             const Divider(),
-                            
+
                             // Order items
-                            ...order.orderItems.map((item) => ListTile(
-                              dense: true,
-                              contentPadding: EdgeInsets.zero,
-                              title: Text(
-                                item.productName,
-                                style: const TextStyle(fontSize: 14),
-                              ),
-                              subtitle: Text(
-                                "${item.quantity} × ₹${item.price.toStringAsFixed(2)}",
-                                style: const TextStyle(fontSize: 12),
-                              ),
-                              trailing: Text(
-                                "₹${item.totalPrice.toStringAsFixed(2)}",
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            )).toList(),
-                            
+                            ...order.orderItems
+                                .map((item) => ListTile(
+                                      dense: true,
+                                      contentPadding: EdgeInsets.zero,
+                                      title: Text(
+                                        item.productName,
+                                        style: const TextStyle(fontSize: 14),
+                                      ),
+                                      subtitle: Text(
+                                        "${item.quantity} × ₹${item.price.toStringAsFixed(2)}",
+                                        style: const TextStyle(fontSize: 12),
+                                      ),
+                                      trailing: Text(
+                                        "₹${item.totalPrice.toStringAsFixed(2)}",
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ))
+                                .toList(),
+
                             const SizedBox(height: 12),
-                            
+
                             // Review section for completed orders
                             if (isCompleted && !isReviewed && !hasReview) ...[
-                              if (showRatingSection[order.id] ?? false) 
+                              if (showRatingSection[order.id] ?? false)
                                 _buildRatingSection(order.id)
                               else
                                 Center(
@@ -310,9 +317,9 @@ class _OrderScreenState extends State<OrderScreen> {
                                   ),
                                 ),
                             ],
-                            
+
                             // Show thank you message for reviewed orders
-                            if (isReviewed || hasReview) 
+                            if (isReviewed || hasReview)
                               Container(
                                 width: double.infinity,
                                 padding: const EdgeInsets.all(12),
@@ -322,7 +329,8 @@ class _OrderScreenState extends State<OrderScreen> {
                                 ),
                                 child: Row(
                                   children: [
-                                    Icon(Icons.check_circle, color: Colors.green),
+                                    Icon(Icons.check_circle,
+                                        color: Colors.green),
                                     const SizedBox(width: 8),
                                     Text(
                                       "Thank you for your review!",

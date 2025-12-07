@@ -8,12 +8,16 @@ const OrderItem = require("../model/orderItem");
 exports.addToCart = async (req, res) => {
   try {
     const user_id = req.user?.id;
-    const { id, quantity, hourlyRate } = req.body;
+
+    // Accept multiple parameter names for flexibility
+    const id = req.body.id || req.body.profile_id;
+    const hourlyRate = req.body.hourlyRate || req.body.price_per_unit;
+    const quantity = req.body.quantity || 1;
 
     if (!user_id || !id || !hourlyRate) {
       return res.status(400).json({
         status: 400,
-        message: "user_id, profile_id, and hourlyRate are required.",
+        message: "user_id, profile_id, and price are required.",
       });
     }
 
@@ -22,7 +26,7 @@ exports.addToCart = async (req, res) => {
     });
 
     if (cartItem) {
-      cartItem.quantity += quantity || 1;
+      cartItem.quantity += quantity;
       cartItem.total_price = cartItem.quantity * hourlyRate;
       cartItem.updated_at = new Date();
       await cartItem.save();
@@ -30,9 +34,9 @@ exports.addToCart = async (req, res) => {
       cartItem = await CartDetails.create({
         user_id,
         profile_id: id,
-        quantity: quantity || 1,
+        quantity: quantity,
         price_per_unit: hourlyRate,
-        total_price: (quantity || 1) * hourlyRate,
+        total_price: quantity * hourlyRate,
       });
     }
 
@@ -83,7 +87,9 @@ exports.getCart = async (req, res) => {
 // Update quantity
 exports.updateQuantity = async (req, res) => {
   try {
-    const { user_id, profile_id, quantity } = req.body;
+    const { profile_id, quantity } = req.body;
+
+    const user_id = req.user?.id;
 
     const item = await CartDetails.findOne({
       where: { user_id, profile_id, cart_status: "active" },
@@ -103,7 +109,9 @@ exports.updateQuantity = async (req, res) => {
       data: { item },
     });
   } catch (error) {
-    res.status(500).json({ status: 500, message: "Error updating quantity" });
+    res
+      .status(500)
+      .json({ status: 500, message: `Error updating quantity ${error}` });
   }
 };
 
@@ -129,7 +137,6 @@ exports.checkout = async (req, res) => {
   try {
     const user_id = req.user?.id;
 
-    
     const cartItems = await CartDetails.findAll({
       where: { user_id, cart_status: "active" },
     });
@@ -143,18 +150,18 @@ exports.checkout = async (req, res) => {
       0
     );
 
-    // ✅ Create new order
+    // Create new order
     const newOrder = await Order.create(
       {
         user_id,
         total_items: cartItems.length,
         total_price: totalPrice,
-        status: "completed",
+        status: "order placed",
       },
       { transaction }
     );
 
-    // ✅ Create order items
+    // Create order items
     const orderItemsData = cartItems.map((item) => ({
       order_id: newOrder.id,
       cart_id: item.id,
@@ -166,7 +173,7 @@ exports.checkout = async (req, res) => {
 
     await OrderItem.bulkCreate(orderItemsData, { transaction });
 
-    // ✅ Update cart items as checked out
+    //  Update cart items as checked out
     await CartDetails.update(
       { cart_status: "checked_out", updated_at: new Date() },
       { where: { user_id, cart_status: "active" }, transaction }

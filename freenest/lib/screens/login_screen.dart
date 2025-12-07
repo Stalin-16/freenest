@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:freenest/constants/ui_screen_routes.dart';
+import 'package:freenest/model/common_reponse.dart';
 import 'package:freenest/model/token_model.dart';
 import 'package:freenest/model/user_model.dart';
 import 'package:freenest/service/cart_api_service.dart';
@@ -24,6 +25,28 @@ class _LoginScreenState extends State<LoginScreen> {
   bool otpSent = false;
   bool isLoading = false;
   final AuthService auth = AuthService();
+  bool isGuest = false;
+  late UserModel? user;
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    _getIsGuest();
+  }
+
+  void _getIsGuest() async {
+    user = await SharedService.getUser();
+    setState(() {
+      isGuest = user?.isGuest ?? false;
+    });
+  }
+
+  @override
+  void dispose() {
+    emailCtrl.dispose();
+    otpCtrl.dispose();
+    super.dispose();
+  }
 
   Future<void> syncCart() async {
     try {
@@ -54,16 +77,17 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => isLoading = true);
     try {
-      final response = await auth.sendOtp(emailCtrl.text);
-
-      if (response['success'] == true) {
+      CommonResponseModel response =
+          await auth.sendOtp(emailCtrl.text, user?.name ?? '');
+      print("response: $response");
+      if (response.status == 200) {
         setState(() => otpSent = true);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('OTP sent successfully')),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(response['message'] ?? 'Failed to send OTP')),
+          SnackBar(content: Text(response.message ?? 'Failed to send OTP')),
         );
       }
     } finally {
@@ -81,20 +105,42 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => isLoading = true);
     try {
-      final data = await auth.verifyOtp(emailCtrl.text, otpCtrl.text);
+      CommonResponseModel data =
+          await auth.verifyOtp(emailCtrl.text.trim(), otpCtrl.text.trim());
+      print(data);
 
-      if (data['token'] != null) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('token', data['token']);
+      if (data.status == 200) {
+        // data.data is already the map containing token and user
+        final responseData = data.data; // This is your map
+        print('responseData: $responseData');
+        // Check if responseData has token key
+        if (responseData['token'] != null) {
+          TokenModel tokenModel = TokenModel.fromMap(responseData['token']);
+          await SharedService.setToken(tokenModel);
+        }
+
+        // Check if responseData has user key
+        if (responseData['user'] != null) {
+          final user = UserModel.fromMap(responseData['user']);
+          await SharedService.setUser(user);
+        }
+
+        Navigator.pushReplacementNamed(context, '/home');
+
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Login Success')),
+          const SnackBar(content: Text('Login Successful')),
         );
-        await syncCart();
+        if (Navigator.canPop(context)) Navigator.pop(context);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(data['message'] ?? 'Invalid OTP')),
+          SnackBar(content: Text(data.message ?? 'Invalid OTP')),
         );
       }
+    } catch (e) {
+      print('Error: $e'); // Add error logging
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${e.toString()}')),
+      );
     } finally {
       setState(() => isLoading = false);
     }
@@ -141,9 +187,25 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void continueAsGuest() {
-    // Navigate to home screen as guest
-    Navigator.pushReplacementNamed(context, '/home');
+  void continueAsGuest() async {
+    try {
+      setState(() => isLoading = true);
+      final res = await auth.guestLogin();
+      TokenModel tokenModel = TokenModel.fromMap(res.data['token']);
+      await SharedService.setToken(tokenModel);
+
+      final user = UserModel.fromMap(res.data['user']);
+      await SharedService.setUser(user);
+
+      Navigator.pushReplacementNamed(context, '/home');
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Login failed')),
+      );
+      print(e);
+    } finally {
+      setState(() => isLoading = false);
+    }
   }
 
   @override
@@ -268,8 +330,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: isLoading
                             ? const CircularProgressIndicator(
                                 color: Colors.white)
-                            : const Text(
-                                "Sign Up & Start Hiring",
+                            : Text(
+                                otpSent
+                                    ? "Verify OTP"
+                                    : "Sign Up & Start Hiring",
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
@@ -282,44 +346,46 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 25),
 
                     // ---------------- OR DIVIDER ----------------
-                    Row(
-                      children: [
-                        Expanded(child: Divider(color: borderColor)),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: Text(
-                            "(OR)",
-                            style: TextStyle(color: primaryTextColor),
+                    if (!isGuest)
+                      Row(
+                        children: [
+                          Expanded(child: Divider(color: borderColor)),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: Text(
+                              "(OR)",
+                              style: TextStyle(color: primaryTextColor),
+                            ),
                           ),
-                        ),
-                        Expanded(child: Divider(color: borderColor)),
-                      ],
-                    ),
+                          Expanded(child: Divider(color: borderColor)),
+                        ],
+                      ),
 
                     const SizedBox(height: 25),
 
                     // ---------------- CONTINUE AS GUEST ----------------
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: OutlinedButton(
-                        onPressed: continueAsGuest,
-                        style: OutlinedButton.styleFrom(
-                          side: BorderSide(color: buttonColor),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                    if (!isGuest)
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: OutlinedButton(
+                          onPressed: continueAsGuest,
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: buttonColor),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
-                        ),
-                        child: Text(
-                          "Continue as Guest",
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: primaryTextColor,
+                          child: Text(
+                            "Continue as Guest",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: primaryTextColor,
+                            ),
                           ),
                         ),
                       ),
-                    ),
 
                     SizedBox(height: size.height * 0.10),
                   ],

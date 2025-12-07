@@ -24,7 +24,7 @@ exports.getOrderDetails = async (req, res) => {
                     "id",
                     "serviceTitle",
                     "hourlyRate",
-                    "serviceCategory",
+                    "serviceCategoryId",
                     "profileImage",
                   ],
                 },

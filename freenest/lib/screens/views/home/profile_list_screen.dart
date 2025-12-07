@@ -122,6 +122,7 @@ class _ProfileListScreenState extends State<ProfileListScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
@@ -134,8 +135,14 @@ class _ProfileListScreenState extends State<ProfileListScreen> {
               size: 16, color: theme.colorScheme.onSurface),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text("Profiles",
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600)),
+        title: Text(
+          "Profiles",
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+            color: theme.colorScheme.onSurface,
+          ),
+        ),
       ),
       body: Column(
         children: [
@@ -143,7 +150,12 @@ class _ProfileListScreenState extends State<ProfileListScreen> {
             child: _isLoading && _profiles.isEmpty
                 ? buildShimmerSkeletonEffect()
                 : _profiles.isEmpty
-                    ? const Center(child: Text("No profiles available"))
+                    ? Center(
+                        child: Text(
+                          "No profiles available",
+                          style: TextStyle(color: theme.colorScheme.onSurface),
+                        ),
+                      )
                     : NotificationListener<ScrollNotification>(
                         onNotification: (ScrollNotification scrollInfo) {
                           if (scrollInfo.metrics.pixels >=
@@ -170,15 +182,19 @@ class _ProfileListScreenState extends State<ProfileListScreen> {
                                       vertical: 16.0),
                                   child: Center(
                                     child: _isLoadingMore
-                                        ? const CircularProgressIndicator()
+                                        ? CircularProgressIndicator(
+                                            color: colorScheme.primary,
+                                          )
                                         : _hasMoreData
                                             ? const SizedBox.shrink()
-                                            : const Padding(
-                                                padding: EdgeInsets.all(16.0),
+                                            : Padding(
+                                                padding:
+                                                    const EdgeInsets.all(16.0),
                                                 child: Text(
                                                   "No more profiles",
                                                   style: TextStyle(
-                                                      color: Colors.grey),
+                                                      color:
+                                                          theme.disabledColor),
                                                 ),
                                               ),
                                   ),
@@ -196,9 +212,20 @@ class _ProfileListScreenState extends State<ProfileListScreen> {
                                   borderRadius: BorderRadius.circular(12),
                                   color: theme.cardColor,
                                   border: Border.all(
-                                    color: Colors.grey.shade300,
+                                    color: isDark
+                                        ? Colors.grey.shade800
+                                        : Colors.grey.shade300,
                                     width: 1,
                                   ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: isDark
+                                          ? Colors.black.withOpacity(0.3)
+                                          : Colors.grey.withOpacity(0.1),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
                                 ),
                                 child: Padding(
                                   padding: const EdgeInsets.all(12.0),
@@ -213,7 +240,9 @@ class _ProfileListScreenState extends State<ProfileListScreen> {
                                         decoration: BoxDecoration(
                                           borderRadius:
                                               BorderRadius.circular(8),
-                                          color: Colors.grey.shade200,
+                                          color: isDark
+                                              ? Colors.grey.shade800
+                                              : Colors.grey.shade200,
                                         ),
                                         child: ClipRRect(
                                           borderRadius:
@@ -226,7 +255,9 @@ class _ProfileListScreenState extends State<ProfileListScreen> {
                                             errorBuilder: (_, __, ___) => Icon(
                                               Icons.person,
                                               size: 30,
-                                              color: Colors.grey.shade600,
+                                              color: isDark
+                                                  ? Colors.grey.shade400
+                                                  : Colors.grey.shade600,
                                             ),
                                           ),
                                         ),
@@ -242,10 +273,11 @@ class _ProfileListScreenState extends State<ProfileListScreen> {
                                             // Title
                                             Text(
                                               p.serviceTitle,
-                                              style: const TextStyle(
+                                              style: TextStyle(
                                                 fontSize: 14,
                                                 fontWeight: FontWeight.w600,
-                                                color: Colors.black,
+                                                color:
+                                                    theme.colorScheme.onSurface,
                                               ),
                                               maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
@@ -257,7 +289,9 @@ class _ProfileListScreenState extends State<ProfileListScreen> {
                                               children: [
                                                 Icon(
                                                   Icons.work,
-                                                  color: Colors.grey.shade700,
+                                                  color: isDark
+                                                      ? Colors.grey.shade400
+                                                      : Colors.grey.shade700,
                                                   size: 12,
                                                 ),
                                                 const SizedBox(width: 4),
@@ -265,7 +299,9 @@ class _ProfileListScreenState extends State<ProfileListScreen> {
                                                   "${p.experience} Years Experience",
                                                   style: TextStyle(
                                                     fontSize: 12,
-                                                    color: Colors.grey.shade700,
+                                                    color: isDark
+                                                        ? Colors.grey.shade400
+                                                        : Colors.grey.shade700,
                                                   ),
                                                 ),
                                               ],
@@ -283,9 +319,11 @@ class _ProfileListScreenState extends State<ProfileListScreen> {
                                                 const SizedBox(width: 4),
                                                 Text(
                                                   "${p.rating} (${_formatWorkOrders(p.workOrders)} Work Orders)",
-                                                  style: const TextStyle(
+                                                  style: TextStyle(
                                                     fontSize: 13,
-                                                    color: Colors.black87,
+                                                    color: theme
+                                                        .colorScheme.onSurface
+                                                        .withOpacity(0.87),
                                                   ),
                                                 ),
                                               ],
@@ -299,11 +337,11 @@ class _ProfileListScreenState extends State<ProfileListScreen> {
                                                 onTap: () =>
                                                     showProfileDetailsBottomSheet(
                                                         context, p),
-                                                child: const Text(
+                                                child: Text(
                                                   "View details",
                                                   style: TextStyle(
                                                     fontSize: 13,
-                                                    color: Colors.orange,
+                                                    color: colorScheme.primary,
                                                     fontWeight: FontWeight.w600,
                                                   ),
                                                 ),
@@ -327,9 +365,8 @@ class _ProfileListScreenState extends State<ProfileListScreen> {
                                             style: TextStyle(
                                               fontSize: 14,
                                               fontWeight: FontWeight.w700,
-                                              color: isDark
-                                                  ? Colors.white
-                                                  : Colors.black,
+                                              color:
+                                                  theme.colorScheme.onSurface,
                                             ),
                                             textAlign: TextAlign.end,
                                           ),
@@ -344,9 +381,12 @@ class _ProfileListScreenState extends State<ProfileListScreen> {
                                                     "Add pressed for ${p.id}");
                                               },
                                               style: ElevatedButton.styleFrom(
-                                                backgroundColor:
-                                                    Colors.grey.shade700,
-                                                foregroundColor: Colors.white,
+                                                backgroundColor: isDark
+                                                    ? colorScheme.primary
+                                                    : Colors.grey.shade700,
+                                                foregroundColor: isDark
+                                                    ? colorScheme.onPrimary
+                                                    : Colors.white,
                                                 padding:
                                                     const EdgeInsets.symmetric(
                                                   horizontal: 20,
@@ -358,11 +398,13 @@ class _ProfileListScreenState extends State<ProfileListScreen> {
                                                 ),
                                                 elevation: 0,
                                               ),
-                                              child: const Text(
+                                              child: Text(
                                                 "Add",
                                                 style: TextStyle(
                                                   fontSize: 13,
-                                                  color: Colors.white,
+                                                  color: isDark
+                                                      ? colorScheme.onPrimary
+                                                      : Colors.white,
                                                   fontWeight: FontWeight.w500,
                                                 ),
                                               ),

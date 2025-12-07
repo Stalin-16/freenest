@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:freenest/config/app_config.dart';
 import 'package:freenest/model/cart_model.dart';
+import 'package:freenest/model/user_model.dart';
 import 'package:freenest/screens/login_screen.dart';
 import 'package:freenest/service/cart_api_service.dart';
 import 'package:freenest/service/cart_service.dart';
@@ -23,37 +24,41 @@ class _CartScreenState extends State<CartScreen> {
   @override
   void initState() {
     super.initState();
-    _loadCart();
+    _checkLoginStatus();
+  }
+
+  Future<void> _checkLoginStatus() async {
+    isLoggedIn = await SharedService.isLoggedIn();
+    if (isLoggedIn) {
+      await _loadCart();
+    } else {
+      setState(() {
+        isLoading = false;
+      });
+    }
   }
 
   Future<void> _loadCart() async {
+    UserModel? user = await SharedService.getUser();
     setState(() => isLoading = true);
 
     try {
-      final loggedIn = await SharedService.isLoggedIn();
       List<CartItemModel> loadedCart = [];
-
-      if (loggedIn) {
-        loadedCart = await CartApiService.getCart();
-      } else {
-        loadedCart = await CartService.getCart();
+      if (user != null) {
+        loadedCart = await CartApiService.getCart(user.id!);
       }
-
-print("Loaded cart: $loadedCart");
       setState(() {
-        isLoggedIn = loggedIn;
         cart = loadedCart.map((item) => item.toMap()).toList();
         isLoading = false;
       });
     } catch (e) {
-      print("Error loading cart: $e");
       setState(() => isLoading = false);
     }
   }
 
   Future<void> _updateQuantity(int index, int newQuantity) async {
     if (newQuantity <= 0) {
-      await _removeItem(cart[index]['title']);
+      await _removeItem(cart[index]['id']);
       return;
     }
 
@@ -61,32 +66,31 @@ print("Loaded cart: $loadedCart");
       cart[index]['quantity'] = newQuantity;
     });
 
-    if (!isLoggedIn) {
-      await CartService.updateQuantity(cart[index]['title'], newQuantity);
-    } else {
-      // TODO: Update quantity in your API
+    try {
+      final response =
+          await CartApiService.updateQuantity(cart[index]['id'], newQuantity);
+    } catch (e) {
+      print("Error updating quantity: $e");
     }
   }
 
-Future<void> _removeItem(String title) async {
-  await CartService.removeFromCart(title);
-  setState(() {
-    cart.removeWhere((item) => item['title'] == title);
-  });
-}
-
+  Future<void> _removeItem(String title) async {
+    await CartService.removeFromCart(title);
+    setState(() {
+      cart.removeWhere((item) => item['title'] == title);
+    });
+  }
 
   void _proceedToCheckout() {
-    if (!isLoggedIn) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please login to proceed')),
-      );
-      Navigator.push(
-          context, MaterialPageRoute(builder: (_) => const LoginScreen()));
-
+    if (isLoggedIn) {
+      Navigator.pushNamed(context, '/checkout');
       return;
     }
-    Navigator.pushNamed(context, '/checkout');
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Please login to proceed')),
+    );
+    Navigator.pushNamed(context, "/login");
   }
 
   @override
