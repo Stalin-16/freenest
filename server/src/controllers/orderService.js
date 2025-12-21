@@ -12,38 +12,21 @@ exports.getOrderDetails = async (req, res) => {
       where: { user_id },
       include: [
         {
-          model: OrderItem,
-          include: [
-            {
-              model: CartDetails,
-              include: [
-                {
-                  model: ServiceProfile,
-                  as: "profile",
-                  attributes: [
-                    "id",
-                    "serviceTitle",
-                    "hourlyRate",
-                    "serviceCategoryId",
-                    "profileImage",
-                  ],
-                },
-              ],
-              attributes: [
-                "id",
-                "quantity",
-                "price_per_unit",
-                "total_price",
-                "cart_status",
-              ],
-            },
+          model: ServiceProfile,
+          as: "profile",
+          attributes: [
+            "id",
+            "serviceTitle",
+            "hourlyRate",
+            "serviceCategoryId",
+            "profileImage",
+            "tagline",
+            "experienceRange",
+            "rating",
           ],
         },
-        // {
-        //   model: User,
-        //   attributes: ["id", "name", "email"],
-        // },
       ],
+
       order: [["created_at", "DESC"]],
     });
 

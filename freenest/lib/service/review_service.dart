@@ -20,8 +20,6 @@ class ReviewApiService {
     };
 
     final res = await _api.post('$baseUrl/reviews', body);
-    print("🔍 Submit Review API Response: $res");
-
     final result = CommonResponseModel.fromMap(res);
 
     if (result.status == 200 || result.status == 201) {

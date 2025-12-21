@@ -57,7 +57,7 @@ class _HomePageState extends State<HomePage> {
           _selectedIndex == 0
               ? ""
               : _selectedIndex == 1
-                  ? "Orders"
+                  ? "Work Orders"
                   : "Account",
         ),
         actions: _selectedIndex == 0 // Show actions only for Home screen

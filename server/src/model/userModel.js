@@ -19,8 +19,6 @@ const User = sequelize.define(
     // Email (unique identifier)
     email: {
       type: DataTypes.STRING,
-      // allowNull: false,
-      unique: true,
     },
 
     // Google ID (used for OAuth login)

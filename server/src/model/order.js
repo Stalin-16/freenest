@@ -5,7 +5,7 @@ const Order = sequelize.define(
   "Order",
   {
     id: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.BIGINT,
       autoIncrement: true,
       primaryKey: true,
     },
@@ -13,11 +13,23 @@ const Order = sequelize.define(
       type: DataTypes.INTEGER,
       allowNull: false,
     },
-    total_items: {
+    total_hours: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+    profile_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
     },
     total_price: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+    },
+    quantity: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+    price_per_unit: {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
     },

@@ -132,6 +132,74 @@ exports.removeFromCart = async (req, res) => {
     res.status(500).json({ status: 500, message: "Error removing item" });
   }
 };
+// exports.checkout = async (req, res) => {
+//   const transaction = await dbconfig.transaction();
+//   try {
+//     const user_id = req.user?.id;
+
+//     const cartItems = await CartDetails.findAll({
+//       where: { user_id, cart_status: "active" },
+//     });
+
+//     if (cartItems.length === 0) {
+//       return res.status(400).json({ status: 400, message: "Cart is empty" });
+//     }
+
+//     const totalPrice = cartItems.reduce(
+//       (sum, item) => sum + parseFloat(item.total_price || 0),
+//       0
+//     );
+
+//     // Create new order
+//     const newOrder = await Order.create(
+//       {
+//         user_id,
+//         total_items: cartItems.length,
+//         total_price: totalPrice,
+//         status: "order placed",
+//       },
+//       { transaction }
+//     );
+
+//     // Create order items
+//     const orderItemsData = cartItems.map((item) => ({
+//       order_id: newOrder.id,
+//       cart_id: item.id,
+//       product_name: item.product_name,
+//       quantity: item.quantity,
+//       price: item.price,
+//       total_price: item.total_price,
+//     }));
+
+//     await OrderItem.bulkCreate(orderItemsData, { transaction });
+
+//     //  Update cart items as checked out
+//     await CartDetails.update(
+//       { cart_status: "checked_out", updated_at: new Date() },
+//       { where: { user_id, cart_status: "active" }, transaction }
+//     );
+
+//     await transaction.commit();
+
+//     res.json({
+//       status: 200,
+//       message: "Checkout successful",
+//       data: {
+//         order: {
+//           order_id: newOrder.id,
+//           user_id,
+//           totalItems: cartItems.length,
+//           totalPrice,
+//         },
+//       },
+//     });
+//   } catch (error) {
+//     await transaction.rollback();
+//     console.error("Checkout error:", error);
+//     res.status(500).json({ status: 500, message: "Error during checkout" });
+//   }
+// };
+
 exports.checkout = async (req, res) => {
   const transaction = await dbconfig.transaction();
   try {
@@ -139,64 +207,89 @@ exports.checkout = async (req, res) => {
 
     const cartItems = await CartDetails.findAll({
       where: { user_id, cart_status: "active" },
+      transaction, // Include in transaction for consistency
     });
 
     if (cartItems.length === 0) {
+      await transaction.rollback();
       return res.status(400).json({ status: 400, message: "Cart is empty" });
     }
 
-    const totalPrice = cartItems.reduce(
-      (sum, item) => sum + parseFloat(item.total_price || 0),
-      0
-    );
+    // Group cart items by profile_id
+    const groupedByProfile = {};
 
-    // Create new order
-    const newOrder = await Order.create(
-      {
-        user_id,
-        total_items: cartItems.length,
-        total_price: totalPrice,
-        status: "order placed",
-      },
-      { transaction }
-    );
+    cartItems.forEach((item) => {
+      const profileId = item.profile_id;
+      if (!groupedByProfile[profileId]) {
+        groupedByProfile[profileId] = [];
+      }
+      groupedByProfile[profileId].push(item);
+    });
 
-    // Create order items
-    const orderItemsData = cartItems.map((item) => ({
-      order_id: newOrder.id,
-      cart_id: item.id,
-      product_name: item.product_name,
-      quantity: item.quantity,
-      price: item.price,
-      total_price: item.total_price,
-    }));
+    for (const [profileId, profileCartItems] of Object.entries(
+      groupedByProfile
+    )) {
+      // Calculate totals for this profile's items
+      const profileTotal = profileCartItems.reduce(
+        (sum, item) => sum + parseFloat(item.total_price || 0),
+        0
+      );
 
-    await OrderItem.bulkCreate(orderItemsData, { transaction });
+      const totalHours = profileCartItems.reduce(
+        (sum, item) => sum + parseFloat(item.quantity || 0),
+        0
+      );
+      await Order.create(
+        {
+          user_id,
+          profile_id: profileId,
+          total_hours: totalHours,
+          price_per_unit: profileTotal / totalHours || 0,
+          quantity: totalHours,
+          total_price: profileTotal,
+          status: "order placed",
+          created_at: new Date(),
+          updated_at: new Date(),
+        },
+        { transaction }
+      );
 
-    //  Update cart items as checked out
-    await CartDetails.update(
-      { cart_status: "checked_out", updated_at: new Date() },
-      { where: { user_id, cart_status: "active" }, transaction }
-    );
+      // Update cart items for this profile as checked out
+      const cartItemIds = profileCartItems.map((item) => item.id);
+      await CartDetails.update(
+        {
+          cart_status: "checked_out",
+          updated_at: new Date(),
+        },
+        {
+          where: {
+            id: cartItemIds,
+            user_id,
+            cart_status: "active",
+          },
+          transaction,
+        }
+      );
+    }
 
     await transaction.commit();
 
     res.json({
       status: 200,
-      message: "Checkout successful",
+      message: "Order Placed Successfully",
       data: {
-        order: {
-          order_id: newOrder.id,
-          user_id,
-          totalItems: cartItems.length,
-          totalPrice,
-        },
+        profilesProcessed: Object.keys(groupedByProfile).length,
+        totalItems: cartItems.length,
       },
     });
   } catch (error) {
     await transaction.rollback();
     console.error("Checkout error:", error);
-    res.status(500).json({ status: 500, message: "Error during checkout" });
+    res.status(500).json({
+      status: 500,
+      message: "Error during checkout",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
   }
 };
 

@@ -1,7 +1,10 @@
+// ignore_for_file: unnecessary_string_interpolations
+
 import 'package:flutter/material.dart';
+import 'package:freenest/config/app_config.dart';
 import 'package:freenest/model/order_model.dart';
+import 'package:freenest/screens/views/order/order_details_screen.dart';
 import 'package:freenest/service/order_service.dart';
-import 'package:freenest/service/review_service.dart';
 
 class OrderScreen extends StatefulWidget {
   const OrderScreen({super.key});
@@ -13,9 +16,6 @@ class OrderScreen extends StatefulWidget {
 class _OrderScreenState extends State<OrderScreen> {
   bool isLoading = true;
   List<OrderModel> orders = [];
-  final Map<int, double> ratings = {};
-  final Map<int, String> comments = {};
-  final Map<int, bool> showRatingSection = {};
 
   @override
   void initState() {
@@ -33,321 +33,241 @@ class _OrderScreenState extends State<OrderScreen> {
       });
     } catch (e) {
       setState(() => isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load orders: $e')),
-      );
     }
   }
 
-  Future<void> _submitReview(int orderId) async {
-    final rating = ratings[orderId] ?? 0;
-    final comment = comments[orderId] ?? '';
-
-    try {
-      setState(() => isLoading = true);
-
-      await ReviewApiService.submitReview(
-        orderId: orderId,
-        rating: rating,
-        comment: comment,
-      );
-
-      // Refresh orders to get updated data with review
-      await _fetchOrders();
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Review submitted successfully!")),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to submit review: $e')),
-      );
-    } finally {
-      setState(() => isLoading = false);
-    }
+  String _formatDate(DateTime date) {
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
+    ];
+    return '${date.day}-${months[date.month - 1]}-${date.year}';
   }
 
-  Color _getStatusColor(String status, BuildContext context) {
-    switch (status.toLowerCase()) {
-      case "order placed":
-        return Colors.orange;
-      case "assigned":
-        return Colors.blue;
-      case "in progress":
-        return Colors.amber;
-      case "completed":
-        return Colors.green;
-      case "reviewed":
-        return Colors.purple;
-      default:
-        return Theme.of(context).colorScheme.onSurface.withOpacity(0.7);
-    }
-  }
-
-  Widget _buildRatingSection(int orderId) {
-    final rating = ratings[orderId] ?? 0;
-    final comment = comments[orderId] ?? '';
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Divider(),
-        const Text(
-          "Rate this service:",
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(5, (index) {
-            return IconButton(
-              icon: Icon(
-                index < rating ? Icons.star : Icons.star_border,
-                color: Colors.amber,
-                size: 28,
-              ),
-              onPressed: () {
-                setState(() {
-                  ratings[orderId] = index + 1.0;
-                });
-              },
-            );
-          }),
-        ),
-        const SizedBox(height: 8),
-        TextField(
-          maxLength: 300,
-          maxLines: 3,
-          decoration: const InputDecoration(
-            hintText: "Write your feedback (max 300 chars)",
-            border: OutlineInputBorder(),
-            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          ),
-          onChanged: (val) {
-            comments[orderId] = val;
-          },
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () {
-                  setState(() {
-                    showRatingSection[orderId] = false;
-                    ratings.remove(orderId);
-                    comments.remove(orderId);
-                  });
-                },
-                child: const Text("Cancel"),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: rating > 0 && comment.isNotEmpty
-                    ? () => _submitReview(orderId)
-                    : null,
-                icon: const Icon(Icons.send, size: 18),
-                label: const Text("Submit Review"),
-              ),
-            ),
-          ],
-        )
-      ],
-    );
-  }
+  /// ---------------- STATUS WIDGET ---------------- ///
+  /// Returns a widget representing the status of the order.
+  Map<String, Color> statusColors = {
+    "getting ready": Colors.blue,
+    "in progress": Colors.yellow,
+    "completed": Colors.green,
+    "cancelled": Colors.red,
+  };
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Your Orders'),
-      ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
-          : orders.isEmpty
-              ? const Center(
-                  child: Text(
-                    'No orders found',
-                    style: TextStyle(fontSize: 16),
-                  ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.all(12),
-                  itemCount: orders.length,
-                  itemBuilder: (context, index) {
-                    final order = orders[index];
-                    final statusColor = _getStatusColor(order.status, context);
-                    final isCompleted =
-                        order.status.toLowerCase() == "completed";
-                    final isReviewed = order.status.toLowerCase() == "reviewed";
-                    final hasReview = order.review != null;
+          : ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: orders.length,
+              itemBuilder: (context, index) {
+                final order = orders[index];
+                final totalPrice = order.totalhours * order.priceperhour;
 
-                    return Card(
-                      color: isDark
-                          ? Colors.grey[900]
-                          : Theme.of(context).cardColor,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                return InkWell(
+                  onTap: () {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => WorkOrderDetailsScreen(
+                                  order: order,
+                                )));
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: theme.cardColor,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: theme.dividerColor,
                       ),
-                      elevation: 4,
-                      margin: const EdgeInsets.only(bottom: 12),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Order header
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          /// LEFT ICON
+                          Container(
+                            height: 48,
+                            width: 48,
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primary.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: order.imageUrl != null
+                                  ? Image.network(
+                                      "${AppConfig.imageUrl}${order.imageUrl!}",
+                                      fit: BoxFit.cover,
+                                      errorBuilder:
+                                          (context, error, stackTrace) {
+                                        return Icon(
+                                          Icons.work,
+                                          color: theme.colorScheme.primary,
+                                        );
+                                      },
+                                    )
+                                  : Icon(
+                                      Icons.work,
+                                      color: theme.colorScheme.primary,
+                                    ),
+                            ),
+                          ),
+
+                          const SizedBox(width: 12),
+
+                          /// CENTER CONTENT
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  "Order #${order.id}",
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
+                                  "${order.serviceTitle}",
+                                  style: theme.textTheme.titleMedium
+                                      ?.copyWith(fontWeight: FontWeight.w600),
                                 ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: statusColor.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: statusColor),
-                                  ),
-                                  child: Text(
-                                    order.status,
-                                    style: TextStyle(
-                                      color: statusColor,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12,
-                                    ),
-                                  ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  "${order.yearsofExperience} Years Experience",
+                                  style: theme.textTheme.bodySmall,
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  "${order.totalhours} Hrs x Rs. ${order.priceperhour} = Rs. $totalPrice",
+                                  style: theme.textTheme.bodySmall
+                                      ?.copyWith(fontWeight: FontWeight.w500),
                                 ),
                               ],
                             ),
+                          ),
 
-                            const SizedBox(height: 8),
-
-                            // Order summary
-                            Text(
-                              "Items: ${order.totalItems} | ₹${order.totalPrice.toStringAsFixed(2)}",
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.w500),
-                            ),
-
-                            Text(
-                              "Date: ${order.createdAt.toLocal().toString().split(' ')[0]}",
-                              style: TextStyle(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurface
-                                    .withOpacity(0.6),
-                                fontSize: 12,
+                          /// RIGHT SIDE
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                _formatDate(order.createdAt),
+                                style: theme.textTheme.bodySmall,
                               ),
-                            ),
-
-                            // Show review rating if exists
-                            if (hasReview) ...[
                               const SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  Icon(Icons.star,
-                                      color: Colors.amber, size: 16),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    "Rated: ${order.review!.rating}/5",
-                                    style: TextStyle(
-                                      color: Colors.amber,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                              _statusWidget(order),
                             ],
-
-                            const SizedBox(height: 12),
-                            const Divider(),
-
-                            // Order items
-                            ...order.orderItems
-                                .map((item) => ListTile(
-                                      dense: true,
-                                      contentPadding: EdgeInsets.zero,
-                                      title: Text(
-                                        item.productName,
-                                        style: const TextStyle(fontSize: 14),
-                                      ),
-                                      subtitle: Text(
-                                        "${item.quantity} × ₹${item.price.toStringAsFixed(2)}",
-                                        style: const TextStyle(fontSize: 12),
-                                      ),
-                                      trailing: Text(
-                                        "₹${item.totalPrice.toStringAsFixed(2)}",
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                    ))
-                                .toList(),
-
-                            const SizedBox(height: 12),
-
-                            // Review section for completed orders
-                            if (isCompleted && !isReviewed && !hasReview) ...[
-                              if (showRatingSection[order.id] ?? false)
-                                _buildRatingSection(order.id)
-                              else
-                                Center(
-                                  child: ElevatedButton.icon(
-                                    onPressed: () {
-                                      setState(() {
-                                        showRatingSection[order.id] = true;
-                                      });
-                                    },
-                                    icon: const Icon(Icons.rate_review),
-                                    label: const Text("Add Review"),
-                                  ),
-                                ),
-                            ],
-
-                            // Show thank you message for reviewed orders
-                            if (isReviewed || hasReview)
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.green.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.check_circle,
-                                        color: Colors.green),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      "Thank you for your review!",
-                                      style: TextStyle(
-                                        color: Colors.green,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                    );
-                  },
-                ),
+                    ),
+                  ),
+                );
+              },
+            ),
+    );
+  }
+
+  /// ---------------- STATUS WIDGET ----------------
+
+  Widget _statusWidget(OrderModel order) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Define your status colors map
+    Map<String, Color> statusColors = {
+      "getting ready": Colors.blue,
+      "order placed": Colors.indigo,
+      "in progress": Colors.orange,
+      "completed": Colors.green,
+      "cancelled": Colors.red,
+    };
+
+    // Define status labels (optional - for display text)
+    Map<String, String> statusLabels = {
+      "order placed": "Order Placed",
+      "getting ready": "Getting Ready",
+      "in progress": "In Progress",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+    };
+
+    String statusKey = order.status.toLowerCase();
+    String label = statusLabels[statusKey] ?? order.status;
+
+    // Special case for completed with review
+    if (statusKey == "completed" && order.review != null) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.grey.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: const Text(
+          "Rated⭐",
+          style: TextStyle(
+            color: Colors.grey,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      );
+    }
+
+    // Special case for completed without review
+    if (statusKey == "completed" && order.review == null) {
+      return ElevatedButton(
+        onPressed: () {
+          Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => WorkOrderDetailsScreen(
+                        order: order,
+                      )));
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: isDark ? Colors.white : Colors.black45,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+        child: Text(
+          "Rate Now ⭐",
+          style: TextStyle(
+              fontSize: 12, color: !isDark ? Colors.white : Colors.black),
+        ),
+      );
+    }
+
+    // Get the text color for this status
+    Color textColor = statusColors[statusKey] ?? Colors.grey;
+
+    // Create background color from text color with opacity
+    Color bgColor = textColor.withOpacity(isDark ? 0.2 : 0.1);
+
+    // For default/grey status
+    if (!statusColors.containsKey(statusKey)) {
+      bgColor = isDark ? Colors.grey.shade800 : Colors.grey.shade100;
+    }
+
+    return Text(
+      label,
+      style: TextStyle(
+        color: textColor,
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+      ),
     );
   }
 }
