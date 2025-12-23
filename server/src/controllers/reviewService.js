@@ -1,11 +1,107 @@
+const dbconfig = require("../config/dbconfig");
+const ServiceProfile = require("../model/admin/serviceProfile");
 const Order = require("../model/order");
 const Review = require("../model/review");
+const User = require("../model/userModel");
 
-// Create review and update order
-exports.createReview = async (req, res) => {
-  const transaction = await Review.sequelize.transaction();
-  
+function calculateNewAverage(currentAverage, currentCount, newRating) {
+  const totalSum = currentAverage * currentCount + newRating;
+  const newCount = currentCount + 1;
+  const newAverage = totalSum / newCount;
+
+  return {
+    newAverage: parseFloat(newAverage.toFixed(2)),
+    newCount,
+  };
+}
+
+// Update service rating
+const updateServiceRating = async (serviceId, newRating, transaction) => {
   try {
+    // Find the service
+    const service = await ServiceProfile.findOne({
+      where: { id: serviceId },
+      transaction,
+    });
+
+    if (!service) {
+      throw new Error("Service not found");
+    }
+
+    // Calculate new average
+    const { newAverage, newCount } = calculateNewAverage(
+      service.overallRating || 0,
+      service.ratingCount || 0,
+      newRating
+    );
+
+    // Update service
+    await ServiceProfile.update(
+      {
+        overallRating: newAverage,
+        ratingCount: newCount,
+        totalRatings: (service.totalRatings || 0) + newRating,
+      },
+      {
+        where: { id: serviceId },
+        transaction,
+      }
+    );
+
+    return newAverage;
+  } catch (error) {
+    console.error("Error updating service rating:", error);
+    throw error;
+  }
+};
+
+// Update user/provider rating
+const updateUserRating = async (userId, newRating, transaction) => {
+  try {
+    // Find the user (provider)
+    const user = await User.findOne({
+      where: { id: userId },
+      transaction,
+    });
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Calculate new average
+    const { newAverage, newCount } = calculateNewAverage(
+      user.overallRating || 0,
+      user.ratingCount || 0,
+      newRating
+    );
+
+    // Update user
+    await User.update(
+      {
+        overallRating: newAverage,
+        ratingCount: newCount,
+        totalRatings: (user.totalRatings || 0) + newRating,
+      },
+      {
+        where: { id: userId },
+        transaction,
+      }
+    );
+
+    return newAverage;
+  } catch (error) {
+    console.error("Error updating user rating:", error);
+    throw error;
+  }
+};
+
+// Create review and update order, user, and service ratings
+exports.createReview = async (req, res) => {
+  const transaction = await dbconfig.transaction();
+
+  try {
+    console.log("Create review request body:", req.body);
+    const userId = req.user.id;
     const { orderId, rating, comment } = req.body;
 
     // Validate input
@@ -13,7 +109,7 @@ exports.createReview = async (req, res) => {
       await transaction.rollback();
       return res.status(400).json({
         success: false,
-        message: 'Order ID, rating, and comment are required'
+        message: "Order ID, rating, and comment are required",
       });
     }
 
@@ -21,91 +117,91 @@ exports.createReview = async (req, res) => {
       await transaction.rollback();
       return res.status(400).json({
         success: false,
-        message: 'Rating must be between 1 and 5'
+        message: "Rating must be between 1 and 5",
       });
     }
 
-
     // Check if order exists and is completed
     const order = await Order.findOne({
-      where: { 
+      where: {
         id: orderId,
-        status: 'completed'
+        status: "completed",
       },
-      transaction
+      transaction,
     });
-    
 
     if (!order) {
       await transaction.rollback();
       return res.status(404).json({
         success: false,
-        message: 'Order not found or not completed'
+        message: "Order not found or not completed",
       });
     }
 
     // Check if review already exists
     const existingReview = await Review.findOne({
       where: { orderId },
-      transaction
+      transaction,
     });
 
     if (existingReview) {
       await transaction.rollback();
       return res.status(409).json({
         success: false,
-        message: 'Review already exists for this order'
+        message: "Review already exists for this order",
       });
     }
 
     // Create review
-    const review = await Review.create({
-      orderId,
-      rating,
-      comment
-    }, { transaction });
+    const review = await Review.create(
+      {
+        orderId,
+        rating,
+        comment,
+        userId,
+        providerId: order.assigned_to,
+        serviceId: order.profile_id,
+      },
+      { transaction }
+    );
 
     // Update order with reviewId and status
     await Order.update(
       {
         reviewId: review.id,
-        status: 'reviewed'
+        status: "reviewed",
       },
       {
         where: { id: orderId },
-        transaction
+        transaction,
       }
     );
 
+    // Update Service Rating
+    if (order.profile_id) {
+      await updateServiceRating(order.profile_id, rating, transaction);
+    }
+    // Update User/Provider Rating
+    if (order.assigned_to) {
+      await updateUserRating(order.assigned_to, rating, transaction);
+    }
+
     await transaction.commit();
 
-    // Fetch updated order with review
-    const updatedOrder = await Order.findByPk(orderId, {
-      include: [{
-        model: Review,
-        as: 'review'
-      }]
+    res.status(200).json({
+      status: 200,
+      message: "Review submitted successfully",
     });
-    
-    res.status(201).json({
-      success: true,
-      message: 'Review submitted successfully',
-      data: {
-        review,
-        order: updatedOrder
-      }
-    });
-
   } catch (error) {
     await transaction.rollback();
-    console.error('Create review error:', error);
+    console.error("Create review error:", error);
     res.status(500).json({
       success: false,
-      message: 'Internal server error',
-      error: error.message
+      message: "Internal server error",
+      error: error.message,
     });
   }
-}
+};
 
 // Get review by order ID
 exports.getReviewByOrderId = async (req, res) => {
@@ -115,40 +211,41 @@ exports.getReviewByOrderId = async (req, res) => {
     if (!orderId) {
       return res.status(400).json({
         success: false,
-        message: 'Order ID is required'
+        message: "Order ID is required",
       });
     }
 
     const review = await Review.findOne({
       where: { orderId },
-      include: [{
-        model: Order,
-        as: 'order',
-        attributes: ['id', 'status', 'totalPrice', 'totalItems']
-      }]
+      include: [
+        {
+          model: Order,
+          as: "order",
+          attributes: ["id", "status", "totalPrice", "totalItems"],
+        },
+      ],
     });
 
     if (!review) {
       return res.status(404).json({
         success: false,
-        message: 'Review not found for this order'
+        message: "Review not found for this order",
       });
     }
 
     res.status(200).json({
       success: true,
-      data: review
+      data: review,
     });
-
   } catch (error) {
-    console.error('Get review by order ID error:', error);
+    console.error("Get review by order ID error:", error);
     res.status(500).json({
       success: false,
-      message: 'Internal server error',
-      error: error.message
+      message: "Internal server error",
+      error: error.message,
     });
   }
-}
+};
 
 // Get all reviews with pagination
 exports.getAllReviews = async (req, res) => {
@@ -158,14 +255,16 @@ exports.getAllReviews = async (req, res) => {
     const offset = (page - 1) * limit;
 
     const { count, rows: reviews } = await Review.findAndCountAll({
-      include: [{
-        model: Order,
-        as: 'order',
-        attributes: ['id', 'status', 'totalPrice']
-      }],
+      include: [
+        {
+          model: Order,
+          as: "order",
+          attributes: ["id", "status", "totalPrice"],
+        },
+      ],
       limit,
       offset,
-      order: [['createdAt', 'DESC']]
+      order: [["createdAt", "DESC"]],
     });
 
     const totalPages = Math.ceil(count / limit);
@@ -179,20 +278,19 @@ exports.getAllReviews = async (req, res) => {
           totalPages,
           totalReviews: count,
           hasNext: page < totalPages,
-          hasPrev: page > 1
-        }
-      }
+          hasPrev: page > 1,
+        },
+      },
     });
-
   } catch (error) {
-    console.error('Get all reviews error:', error);
+    console.error("Get all reviews error:", error);
     res.status(500).json({
       success: false,
-      message: 'Internal server error',
-      error: error.message
+      message: "Internal server error",
+      error: error.message,
     });
   }
-}
+};
 
 // Update review
 exports.updateReview = async (req, res) => {
@@ -203,21 +301,21 @@ exports.updateReview = async (req, res) => {
     if (!reviewId) {
       return res.status(400).json({
         success: false,
-        message: 'Review ID is required'
+        message: "Review ID is required",
       });
     }
 
     if (!rating && !comment) {
       return res.status(400).json({
         success: false,
-        message: 'Rating or comment is required for update'
+        message: "Rating or comment is required for update",
       });
     }
 
     if (rating && (rating < 1 || rating > 5)) {
       return res.status(400).json({
         success: false,
-        message: 'Rating must be between 1 and 5'
+        message: "Rating must be between 1 and 5",
       });
     }
 
@@ -225,15 +323,14 @@ exports.updateReview = async (req, res) => {
     if (rating) updateData.rating = rating;
     if (comment) updateData.comment = comment;
 
-    const [affectedRows] = await Review.update(
-      updateData,
-      { where: { id: reviewId } }
-    );
+    const [affectedRows] = await Review.update(updateData, {
+      where: { id: reviewId },
+    });
 
     if (affectedRows === 0) {
       return res.status(404).json({
         success: false,
-        message: 'Review not found'
+        message: "Review not found",
       });
     }
 
@@ -242,19 +339,18 @@ exports.updateReview = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'Review updated successfully',
-      data: updatedReview
+      message: "Review updated successfully",
+      data: updatedReview,
     });
-
   } catch (error) {
-    console.error('Update review error:', error);
+    console.error("Update review error:", error);
     res.status(500).json({
       success: false,
-      message: 'Internal server error',
-      error: error.message
+      message: "Internal server error",
+      error: error.message,
     });
   }
-}
+};
 
 // Delete review (soft delete)
 exports.deleteReview = async (req, res) => {
@@ -264,36 +360,35 @@ exports.deleteReview = async (req, res) => {
     if (!reviewId) {
       return res.status(400).json({
         success: false,
-        message: 'Review ID is required'
+        message: "Review ID is required",
       });
     }
 
     const [affectedRows] = await Review.update(
-      { status: 'inactive' },
+      { status: "inactive" },
       { where: { id: reviewId } }
     );
 
     if (affectedRows === 0) {
       return res.status(404).json({
         success: false,
-        message: 'Review not found'
+        message: "Review not found",
       });
     }
 
     res.status(200).json({
       success: true,
-      message: 'Review deleted successfully'
+      message: "Review deleted successfully",
     });
-
   } catch (error) {
-    console.error('Delete review error:', error);
+    console.error("Delete review error:", error);
     res.status(500).json({
       success: false,
-      message: 'Internal server error',
-      error: error.message
+      message: "Internal server error",
+      error: error.message,
     });
   }
-}
+};
 
 // Get review by ID
 exports.getReviewById = async (req, res) => {
@@ -303,36 +398,37 @@ exports.getReviewById = async (req, res) => {
     if (!reviewId) {
       return res.status(400).json({
         success: false,
-        message: 'Review ID is required'
+        message: "Review ID is required",
       });
     }
 
     const review = await Review.findByPk(reviewId, {
-      include: [{
-        model: Order,
-        as: 'order',
-        attributes: ['id', 'status', 'totalPrice', 'totalItems']
-      }]
+      include: [
+        {
+          model: Order,
+          as: "order",
+          attributes: ["id", "status", "totalPrice", "totalItems"],
+        },
+      ],
     });
 
     if (!review) {
       return res.status(404).json({
         success: false,
-        message: 'Review not found'
+        message: "Review not found",
       });
     }
 
     res.status(200).json({
       success: true,
-      data: review
+      data: review,
     });
-
   } catch (error) {
-    console.error('Get review by ID error:', error);
+    console.error("Get review by ID error:", error);
     res.status(500).json({
       success: false,
-      message: 'Internal server error',
-      error: error.message
+      message: "Internal server error",
+      error: error.message,
     });
   }
-}
+};

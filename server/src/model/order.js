@@ -13,6 +13,10 @@ const Order = sequelize.define(
       type: DataTypes.INTEGER,
       allowNull: false,
     },
+    assigned_to: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
     total_hours: {
       type: DataTypes.INTEGER,
       allowNull: false,

@@ -9,6 +9,18 @@ const Review = sequelize.define(
       primaryKey: true,
       autoIncrement: true,
     },
+    userId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+    providerId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+    serviceId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
     orderId: {
       type: DataTypes.INTEGER,
       allowNull: false,
@@ -31,6 +43,16 @@ const Review = sequelize.define(
       validate: {
         len: [1, 500],
       },
+    },
+    createdAt: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW,
+    },
+    updatedAt: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW,
     },
     status: {
       type: DataTypes.ENUM("active", "inactive"),

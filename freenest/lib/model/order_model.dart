@@ -1,4 +1,5 @@
 import 'package:freenest/model/review_model.dart';
+import 'package:freenest/model/user_model.dart';
 
 class OrderModel {
   final int id;
@@ -11,9 +12,9 @@ class OrderModel {
   final String status;
   final String statusText;
   final DateTime createdAt;
-  final String assignedTo;
+  final AssignedUserModel? assignedUser;
   final String? imageUrl;
-  final ReviewModel? review;
+  final OrderReviewModel? review;
 
   // NEW FIELDS from the JSON
   final int profileId;
@@ -35,7 +36,7 @@ class OrderModel {
     required this.status,
     required this.statusText,
     required this.createdAt,
-    required this.assignedTo,
+    required this.assignedUser,
     this.yearsofExperience = 0,
     this.imageUrl,
     this.review,
@@ -55,21 +56,42 @@ class OrderModel {
     double parseDouble(dynamic value) {
       if (value == null) return 0.0;
       if (value is num) return value.toDouble();
-      if (value is String) return double.tryParse(value) ?? 0.0;
+      if (value is String) {
+        // Remove any quotes or unwanted characters
+        final cleaned = value.replaceAll('"', '').trim();
+        return double.tryParse(cleaned) ?? 0.0;
+      }
       return 0.0;
     }
 
     int parseInt(dynamic value) {
       if (value == null) return 0;
       if (value is num) return value.toInt();
-      if (value is String) return int.tryParse(value) ?? 0;
+      if (value is String) {
+        // Remove any quotes or unwanted characters
+        final cleaned = value.replaceAll('"', '').trim();
+        return int.tryParse(cleaned) ?? 0;
+      }
       return 0;
     }
 
     String? parseImageUrl(dynamic value) {
       if (value == null) return null;
-      if (value is String && value.isNotEmpty) return value;
+      if (value is String && value.isNotEmpty) {
+        final cleaned = value.trim();
+        // Add base URL if needed (update with your actual base URL)
+        if (!cleaned.startsWith('http') && !cleaned.startsWith('/')) {
+          return '/$cleaned';
+        }
+        return cleaned;
+      }
       return null;
+    }
+
+    String parseString(dynamic value) {
+      if (value == null) return '';
+      if (value is String) return value;
+      return value.toString();
     }
 
     // Extract profile data if it exists
@@ -77,49 +99,85 @@ class OrderModel {
 
     // Parse profile-specific fields
     final profileId = parseInt(map['profile_id'] ?? profile['id']);
-    final serviceTitle = profile['serviceTitle'] ?? map['serviceTitle'] ?? '';
-    final hourlyRate = profile['hourlyRate'] ?? map['hourlyRate'] ?? 0;
-    final experienceRange =
-        profile['experienceRange'] ?? map['years_of_experience'] ?? '0';
-    final profileImage = profile['profileImage'] ?? map['imageUrl'];
-    final tagline = profile['tagline'];
+
+    // Get serviceTitle from profile or directly from map
+    final serviceTitle = profile['serviceTitle']?.toString() ??
+        map['serviceTitle']?.toString() ??
+        '';
+
+    final hourlyRate =
+        parseInt(profile['hourlyRate'] ?? map['hourlyRate'] ?? 0);
+
+    // Parse experienceRange - it's a string in JSON like "2"
+    final experienceRangeStr = profile['experienceRange']?.toString() ??
+        map['years_of_experience']?.toString() ??
+        '0';
+    final yearsofExperience = parseInt(experienceRangeStr);
+
+    final profileImage = profile['profileImage'];
+    final tagline = profile['tagline']?.toString();
     final serviceCategoryId = profile['serviceCategoryId'];
-    final rating = parseDouble(profile['rating'] ?? 0);
+
+    // Get rating from overallRating or rating field
+    final rating =
+        parseDouble(profile['overallRating'] ?? profile['rating'] ?? 0);
 
     // Parse order fields
-    final totalhours =
-        map['total_hours'] ?? map['total_items'] ?? map['quantity'] ?? 1;
+    final totalHours = map['total_hours'] ?? map['totalhours'] ?? 0;
     final pricePerUnit =
         map['price_per_unit'] ?? map['pricePerUnit'] ?? hourlyRate;
-    final quantity = map['quantity'] ?? totalhours;
+    final quantity = map['quantity'] ?? 0;
+
+    // Calculate total hours: use total_hours if > 0, otherwise use quantity
+    final effectiveTotalHours =
+        parseInt(totalHours) > 0 ? parseInt(totalHours) : parseInt(quantity);
+
+    // Parse date times
+    final createdAtStr =
+        map['created_at']?.toString() ?? map['createdAt']?.toString() ?? '';
+    final updatedAtStr =
+        map['updated_at']?.toString() ?? map['updatedAt']?.toString() ?? '';
+
+    final createdAt = DateTime.tryParse(createdAtStr) ?? DateTime.now();
+    final updatedAt = DateTime.tryParse(updatedAtStr) ?? DateTime.now();
+
+    // Parse assignedUser if exists
+    AssignedUserModel? assignedUser;
+    if (map['assignedUser'] != null &&
+        map['assignedUser'] is Map<String, dynamic>) {
+      assignedUser = AssignedUserModel.fromMap(map['assignedUser']);
+    }
+
+    // Parse review if exists
+    OrderReviewModel? review;
+    if (map['reviewDetails'] != null &&
+        map['reviewDetails'] is Map<String, dynamic>) {
+      review = OrderReviewModel.fromMap(map['reviewDetails']);
+    }
 
     return OrderModel(
-      id: map['id'] ?? 0,
-      userId: map['user_id'] ?? map['userId'] ?? 0,
+      id: parseInt(map['id']),
+      userId: parseInt(map['user_id'] ?? map['userId']),
       serviceTitle: serviceTitle,
-      totalhours: parseInt(totalhours),
-      priceperhour: parseInt(hourlyRate),
+      totalhours: effectiveTotalHours,
+      priceperhour: hourlyRate,
       totalPrice: parseDouble(map['total_price'] ?? map['totalPrice']),
-      status: map['status'] ?? '',
-      statusText: map['status'] ?? '', // Using status as statusText fallback
-      createdAt:
-          DateTime.tryParse(map['created_at'] ?? map['createdAt'] ?? '') ??
-              DateTime.now(),
-      assignedTo: serviceTitle,
-      yearsofExperience: parseInt(experienceRange),
+      status: parseString(map['status']),
+      statusText: parseString(map['status']), // Using status as statusText
+      yearsofExperience: yearsofExperience,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      assignedUser: assignedUser,
       imageUrl: parseImageUrl(profileImage),
-      review: map['review'] != null ? ReviewModel.fromMap(map['review']) : null,
+      review: review,
 
       // New fields
       profileId: profileId,
       quantity: parseInt(quantity),
       pricePerUnit: parseDouble(pricePerUnit),
       reviewId: parseInt(map['reviewId']),
-      updatedAt:
-          DateTime.tryParse(map['updated_at'] ?? map['updatedAt'] ?? '') ??
-              DateTime.now(),
       serviceCategoryId: parseInt(serviceCategoryId),
-      tagline: tagline != null ? tagline.toString() : null,
+      tagline: tagline,
       rating: rating,
     );
   }
@@ -139,7 +197,7 @@ class OrderModel {
       'yearsofExperience': yearsofExperience,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
-      'assignedTo': assignedTo,
+      'assignedUser': assignedUser?.toMap(),
       'imageUrl': imageUrl,
       'quantity': quantity,
       'price_per_unit': pricePerUnit,
@@ -169,6 +227,7 @@ class OrderModel {
   OrderModel copyWith({
     int? id,
     int? userId,
+    String? serviceTitle,
     int? totalhours,
     int? priceperhour,
     double? totalPrice,
@@ -176,9 +235,9 @@ class OrderModel {
     String? statusText,
     DateTime? createdAt,
     DateTime? updatedAt,
-    String? assignedTo,
+    AssignedUserModel? assignedUser,
     String? imageUrl,
-    ReviewModel? review,
+    OrderReviewModel? review,
     int? profileId,
     int? quantity,
     double? pricePerUnit,
@@ -191,7 +250,7 @@ class OrderModel {
     return OrderModel(
       id: id ?? this.id,
       userId: userId ?? this.userId,
-      serviceTitle: serviceTitle,
+      serviceTitle: serviceTitle ?? this.serviceTitle,
       totalhours: totalhours ?? this.totalhours,
       priceperhour: priceperhour ?? this.priceperhour,
       totalPrice: totalPrice ?? this.totalPrice,
@@ -200,7 +259,7 @@ class OrderModel {
       yearsofExperience: yearsofExperience ?? this.yearsofExperience,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
-      assignedTo: assignedTo ?? this.assignedTo,
+      assignedUser: assignedUser ?? this.assignedUser,
       imageUrl: imageUrl ?? this.imageUrl,
       review: review ?? this.review,
       profileId: profileId ?? this.profileId,
@@ -229,8 +288,137 @@ class OrderModel {
         return 'Completed';
       case 'cancelled':
         return 'Cancelled';
+      case 'reviewed':
+        return 'Reviewed';
       default:
         return status;
     }
+  }
+
+  @override
+  String toString() {
+    return 'OrderModel(id: $id, userId: $userId, serviceTitle: $serviceTitle, status: $status)';
+  }
+}
+
+class AssignedUserModel {
+  final int id;
+  final String name;
+  final String email;
+  final String overallRating;
+
+  AssignedUserModel({
+    required this.id,
+    required this.name,
+    required this.email,
+    required this.overallRating,
+  });
+
+  factory AssignedUserModel.fromMap(Map<String, dynamic> map) {
+    double parseDouble(dynamic value) {
+      if (value == null) return 0.0;
+      if (value is num) return value.toDouble();
+      if (value is String) {
+        final cleaned = value.replaceAll('"', '').trim();
+        return double.tryParse(cleaned) ?? 0.0;
+      }
+      return 0.0;
+    }
+
+    int parseInt(dynamic value) {
+      if (value == null) return 0;
+      if (value is num) return value.toInt();
+      if (value is String) {
+        final cleaned = value.replaceAll('"', '').trim();
+        return int.tryParse(cleaned) ?? 0;
+      }
+      return 0;
+    }
+
+    String parseString(dynamic value) {
+      if (value == null) return '';
+      if (value is String) return value;
+      return value.toString();
+    }
+
+    return AssignedUserModel(
+      id: parseInt(map['id']),
+      name: parseString(map['name']),
+      email: parseString(map['email']),
+      overallRating: parseDouble(map['overallRating']).toString(),
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name': name,
+      'email': email,
+      'overallRating': overallRating,
+    };
+  }
+
+  @override
+  String toString() {
+    return 'AssignedUserModel(id: $id, name: $name, email: $email)';
+  }
+}
+
+class OrderReviewModel {
+  final int id;
+  final double rating;
+  final String comment;
+
+  OrderReviewModel({
+    required this.id,
+    required this.rating,
+    required this.comment,
+  });
+
+  factory OrderReviewModel.fromMap(Map<String, dynamic> map) {
+    double parseDouble(dynamic value) {
+      if (value == null) return 0.0;
+      if (value is num) return value.toDouble();
+      if (value is String) {
+        final cleaned = value.replaceAll('"', '').trim();
+        return double.tryParse(cleaned) ?? 0.0;
+      }
+      return 0.0;
+    }
+
+    int parseInt(dynamic value) {
+      if (value == null) return 0;
+      if (value is num) return value.toInt();
+      if (value is String) {
+        final cleaned = value.replaceAll('"', '').trim();
+        return int.tryParse(cleaned) ?? 0;
+      }
+      return 0;
+    }
+
+    String parseString(dynamic value) {
+      if (value == null) return '';
+      if (value is String) return value;
+      return value.toString();
+    }
+
+    return OrderReviewModel(
+      id: parseInt(map['id']),
+      rating: parseDouble(map['rating']),
+      comment: parseString(map['comment']),
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'rating': rating,
+      'comment': comment,
+    };
+  }
+
+  @override
+  String toString() {
+    return 'OrderReviewModel(id: $id, rating: $rating, comment: $comment)';
   }
 }

@@ -24,7 +24,9 @@ const ServiceProfile = sequelize.define(
     faqs: { type: DataTypes.JSON, allowNull: true },
 
     // 6. Review & Rating
-    rating: { type: DataTypes.INTEGER, defaultValue: 5 },
+    overallRating: { type: DataTypes.BIGINT, default: 0 },
+    totalRatings: { type: DataTypes.BIGINT, default: 0 },
+    ratingCount: { type: DataTypes.BIGINT, default: 0 },
     reviewComments: { type: DataTypes.TEXT },
 
     // 7. Freelance Partners Reference

@@ -2,7 +2,84 @@ const ServiceProfile = require("../model/admin/serviceProfile");
 const CartDetails = require("../model/cartDetails");
 const Order = require("../model/order");
 const OrderItem = require("../model/orderItem");
+const Review = require("../model/review");
 const User = require("../model/userModel");
+
+// exports.getOrderDetails = async (req, res) => {
+//   try {
+//     const user_id = req.user?.id;
+//     const page = parseInt(req.query.page) || 1;
+//     const limit = parseInt(req.query.limit) || 8;
+//     const offset = (page - 1) * limit;
+
+//     const { count, rows: orders } = await Order.findAndCountAll({
+//       where: { user_id },
+//       include: [
+//         {
+//           model: ServiceProfile,
+//           as: "profile",
+//           attributes: [
+//             "id",
+//             "serviceTitle",
+//             "hourlyRate",
+//             "serviceCategoryId",
+//             "profileImage",
+//             "tagline",
+//             "experienceRange",
+//             "ratingCount",
+//             "totalRatings",
+//             "overallRating",
+//           ],
+//         },
+//         {
+//           model: User,
+//           as: "assignedUser",
+//           attributes: ["id", "name", "email", "overallRating"],
+//         },
+//         {
+//           model: Review,
+//           as: "reviewDetails",
+//           attributes: ["id", "rating", "comment"],
+//         },
+//       ],
+//       order: [["created_at", "DESC"]],
+//       limit: limit,
+//       offset: offset,
+//     });
+
+//     if (!orders || orders.length === 0) {
+//       return res.status(404).json({
+//         status: 404,
+//         message: "No orders found for this user",
+//       });
+//     }
+
+//     const totalPages = Math.ceil(count / limit);
+//     const hasNextPage = page < totalPages;
+
+//     res.json({
+//       status: 200,
+//       message: "Orders fetched successfully",
+//       data: {
+//         orders: orders,
+//         pagination: {
+//           currentPage: page,
+//           totalPages: totalPages,
+//           totalItems: count,
+//           hasNextPage: hasNextPage,
+//           limit: limit,
+//         },
+//       },
+//     });
+//   } catch (error) {
+//     console.error("Error fetching order details:", error);
+//     res.status(500).json({
+//       status: 500,
+//       message: "Failed to fetch order details",
+//       error: error.message,
+//     });
+//   }
+// };
 
 exports.getOrderDetails = async (req, res) => {
   try {
@@ -22,8 +99,20 @@ exports.getOrderDetails = async (req, res) => {
             "profileImage",
             "tagline",
             "experienceRange",
-            "rating",
+            "ratingCount",
+            "totalRatings",
+            "overallRating",
           ],
+        },
+        {
+          model: User,
+          as: "assignedUser",
+          attributes: ["id", "name", "email", "overallRating"],
+        },
+        {
+          model: Review,
+          as: "reviewDetails",
+          attributes: ["id", "rating", "comment"],
         },
       ],
 

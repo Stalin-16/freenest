@@ -185,17 +185,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         {
           "id": 101,
           "title": "Business Analyst",
-          "img": "images/home/bussines.png",
+          "img": "assets/images/home/bussines.png",
         },
         {
           "id": 102,
           "title": "Salesforce Business Analyst",
-          "img": "images/home/salesforce.png",
+          "img": "assets/images/home/salesforce.png",
         },
         {
           "id": 103,
           "title": "Quality Analyst",
-          "img": "images/home/QA.png",
+          "img": "assets/images/home/QA.png",
         },
       ]
     },
@@ -205,17 +205,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         {
           "id": 201,
           "title": "PHP Developer",
-          "img": "images/home/php.png",
+          "img": "assets/images/home/php.png",
         },
         {
           "id": 202,
           "title": "Node JS Developer",
-          "img": "images/home/nodejs.png",
+          "img": "assets/images/home/nodejs.png",
         },
         {
           "id": 203,
           "title": "Java Developer",
-          "img": "images/home/java.png",
+          "img": "assets/images/home/java.png",
         },
       ]
     },
@@ -225,22 +225,22 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         {
           "id": 301,
           "title": "Flutter Developer",
-          "img": "images/home/flutter.jpg",
+          "img": "assets/images/home/flutter.jpg",
         },
         {
           "id": 302,
           "title": "React Native Developer",
-          "img": "images/home/reactnative.png",
+          "img": "assets/images/home/reactnative.png",
         },
         {
           "id": 303,
           "title": "iOS Developer",
-          "img": "images/home/ios.png",
+          "img": "assets/images/home/ios.png",
         },
         {
           "id": 304,
           "title": "Kotlin Developer",
-          "img": "images/home/kotlin.webp",
+          "img": "assets/images/home/kotlin.webp",
         },
       ]
     },

@@ -36,7 +36,7 @@ const User = sequelize.define(
 
     // Role-based access (default user)
     role: {
-      type: DataTypes.ENUM("user", "admin", "guest"),
+      type: DataTypes.ENUM("user", "admin", "guest", "freelancer"),
       allowNull: false,
       defaultValue: "user",
     },
@@ -50,6 +50,9 @@ const User = sequelize.define(
     otp: { type: DataTypes.STRING, allowNull: true },
     //Otp Expires
     otpExpires: { type: DataTypes.DATE, allowNull: true },
+    overallRating: { type: DataTypes.BIGINT, default: 0 },
+    totalRatings: { type: DataTypes.BIGINT, default: 0 },
+    ratingCount: { type: DataTypes.BIGINT, default: 0 },
   },
   {
     tableName: "users",

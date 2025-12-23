@@ -107,12 +107,9 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       CommonResponseModel data =
           await auth.verifyOtp(emailCtrl.text.trim(), otpCtrl.text.trim());
-      print(data);
-
       if (data.status == 200) {
         // data.data is already the map containing token and user
         final responseData = data.data; // This is your map
-        print('responseData: $responseData');
         // Check if responseData has token key
         if (responseData['token'] != null) {
           TokenModel tokenModel = TokenModel.fromMap(responseData['token']);

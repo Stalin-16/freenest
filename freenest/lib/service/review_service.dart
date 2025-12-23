@@ -19,7 +19,7 @@ class ReviewApiService {
       'comment': comment,
     };
 
-    final res = await _api.post('$baseUrl/reviews', body);
+    final res = await _api.post('$baseUrl/reviews/create-review', body);
     final result = CommonResponseModel.fromMap(res);
 
     if (result.status == 200 || result.status == 201) {
@@ -32,8 +32,6 @@ class ReviewApiService {
   // Get review by order ID
   static Future<ReviewModel?> getReviewByOrderId(int orderId) async {
     final res = await _api.get('$baseUrl/reviews/order/$orderId');
-    print("🔍 Get Review by Order ID API Response: $res");
-
     final result = CommonResponseModel.fromMap(res);
 
     if (result.status == 200) {
@@ -98,8 +96,6 @@ class ReviewApiService {
   // Delete review
   static Future<void> deleteReview(int reviewId) async {
     final res = await _api.delete('$baseUrl/reviews/$reviewId');
-    print("🔍 Delete Review API Response: $res");
-
     final result = CommonResponseModel.fromMap(res);
 
     if (result.status == 200) {

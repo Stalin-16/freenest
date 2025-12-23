@@ -134,10 +134,13 @@ class ServiceProviderCard extends StatelessWidget {
                   // Rating and Work Orders
                   Row(
                     children: [
-                      Icon(
-                        Icons.star,
-                        color: Colors.amber.shade700,
-                        size: 16,
+                      Text(
+                        "⭐",
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: theme.colorScheme.onSurface,
+                        ),
                       ),
                       const SizedBox(width: 4),
                       Text(

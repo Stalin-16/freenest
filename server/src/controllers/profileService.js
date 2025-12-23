@@ -94,7 +94,6 @@ exports.getAllProfilesForUsers = async (req, res) => {
         "serviceTitle",
         "hourlyRate",
         "tagline",
-        "rating",
         "experienceRange",
       ],
       order: [["serviceTitle", "ASC"]],

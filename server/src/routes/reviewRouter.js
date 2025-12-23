@@ -2,9 +2,14 @@
 const express = require("express");
 const reviewRouter = express.Router();
 const reviewController = require("../controllers/reviewService");
+const { authenticateToken } = require("../middleware/auth");
 
 // Create a new review
-reviewRouter.post("/", reviewController.createReview);
+reviewRouter.post(
+  "/create-review",
+  authenticateToken,
+  reviewController.createReview
+);
 
 // Get all reviews with pagination
 reviewRouter.get("/", reviewController.getAllReviews);

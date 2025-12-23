@@ -31,18 +31,17 @@ User.hasMany(Order, { foreignKey: "user_id" });
 Order.hasMany(OrderItem, { foreignKey: "order_id" });
 OrderItem.belongsTo(Order, { foreignKey: "order_id" });
 
-Order.hasOne(Review, {
-  foreignKey: "orderId",
-  as: "review",
-});
-
-Review.belongsTo(Order, {
-  foreignKey: "orderId",
-  as: "order",
-});
+Order.hasOne(Review, { foreignKey: "orderId", as: "reviewDetails" });
+Review.belongsTo(Order, { foreignKey: "orderId" });
 
 Order.belongsTo(ServiceProfile, {
   as: "profile",
   targetKey: "id",
   foreignKey: "profile_id",
+});
+
+Order.belongsTo(User, {
+  as: "assignedUser",
+  targetKey: "id",
+  foreignKey: "assigned_to",
 });
