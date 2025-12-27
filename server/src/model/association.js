@@ -34,6 +34,9 @@ OrderItem.belongsTo(Order, { foreignKey: "order_id" });
 Order.hasOne(Review, { foreignKey: "orderId", as: "reviewDetails" });
 Review.belongsTo(Order, { foreignKey: "orderId" });
 
+// 🧩 ServiceProfile ↔ Order
+ServiceProfile.hasMany(Order, { foreignKey: "profile_id", as: "orders" });
+
 Order.belongsTo(ServiceProfile, {
   as: "profile",
   targetKey: "id",

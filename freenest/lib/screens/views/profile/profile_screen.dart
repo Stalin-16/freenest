@@ -174,7 +174,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            user!.id.toString() ?? '+91 7418555271',
+                            user!.id.toString() ?? '',
                             style: TextStyle(
                               fontSize: isLargeScreen ? 14 : 12,
                               color: theme.colorScheme.onBackground
@@ -253,7 +253,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         subtitle: isLoggedIn ? "Rs. 500" : "Rs. 0",
                         icon: Icons.credit_card,
                         context: context,
-                        onTap: () {},
+                        onTap: () {
+                          // Navigate to Account Credit Screen
+                          Navigator.pushNamed(context, '/account-credit');
+                        },
                       ),
 
                       Divider(
@@ -307,39 +310,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               const Spacer(),
 
-              // ========== LOGOUT BUTTON ==========
-              if (isLoggedIn) ...[
-                SizedBox(
-                  width: double.infinity,
-                  height: isLargeScreen ? 56 : 50,
-                  child: OutlinedButton.icon(
-                    onPressed: _logout,
-                    icon: Icon(
-                      Icons.logout,
-                      size: isLargeScreen ? 22 : 20,
-                      color: theme.colorScheme.error,
-                    ),
-                    label: Text(
-                      'Logout',
-                      style: TextStyle(
-                        fontSize: isLargeScreen ? 16 : 14,
-                        fontWeight: FontWeight.w500,
-                        color: theme.colorScheme.error,
-                      ),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: theme.colorScheme.error,
-                      side: BorderSide(color: theme.colorScheme.error),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(height: isLargeScreen ? 32 : 24),
-              ] else ...[
-                SizedBox(height: isLargeScreen ? 32 : 24),
-              ],
+              // // ========== LOGOUT BUTTON ==========
+              // if (isLoggedIn) ...[
+              //   SizedBox(
+              //     width: double.infinity,
+              //     height: isLargeScreen ? 56 : 50,
+              //     child: OutlinedButton.icon(
+              //       onPressed: _logout,
+              //       icon: Icon(
+              //         Icons.logout,
+              //         size: isLargeScreen ? 22 : 20,
+              //         color: theme.colorScheme.error,
+              //       ),
+              //       label: Text(
+              //         'Logout',
+              //         style: TextStyle(
+              //           fontSize: isLargeScreen ? 16 : 14,
+              //           fontWeight: FontWeight.w500,
+              //           color: theme.colorScheme.error,
+              //         ),
+              //       ),
+              //       style: OutlinedButton.styleFrom(
+              //         foregroundColor: theme.colorScheme.error,
+              //         side: BorderSide(color: theme.colorScheme.error),
+              //         shape: RoundedRectangleBorder(
+              //           borderRadius: BorderRadius.circular(12),
+              //         ),
+              //       ),
+              //     ),
+              //   ),
+              //   SizedBox(height: isLargeScreen ? 32 : 24),
+              // ] else ...[
+              //   SizedBox(height: isLargeScreen ? 32 : 24),
+              // ],
             ],
           ),
         ),

@@ -64,7 +64,6 @@ class _ProfileListScreenState extends State<ProfileListScreen> {
         page: 1,
         limit: _pageSize,
       );
-
       setState(() {
         _profiles = response.data;
         _totalProfiles = response.total;
@@ -72,7 +71,6 @@ class _ProfileListScreenState extends State<ProfileListScreen> {
         _currentPage = response.page;
       });
     } catch (e) {
-      print("Initial profiles loading failed: $e");
       _showErrorSnackbar("Failed to load profiles");
     } finally {
       setState(() => _isLoading = false);

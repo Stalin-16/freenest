@@ -9,5 +9,10 @@ cartRouter.post("/update", authenticateToken, cartController.updateQuantity);
 cartRouter.post("/remove", authenticateToken, cartController.removeFromCart);
 cartRouter.post("/checkout", authenticateToken, cartController.checkout);
 cartRouter.post("/sync", authenticateToken, cartController.syncCart);
+cartRouter.post(
+  "/apply-referral",
+  authenticateToken,
+  cartController.applyReferralCode
+);
 
 module.exports = cartRouter;

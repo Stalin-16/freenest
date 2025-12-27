@@ -25,8 +25,10 @@ class CartApiService {
     }
   }
 
-  static Future<List<CartItemModel>> getCart(int userId) async {
+  static Future<List<CartItemModel>> getCart() async {
     final response = await _api.get("$baseUrl/cart/get");
+
+    // print("@@ Cart API Response: $response");
 
     final result = CommonResponseModel.fromMap(response);
 
@@ -62,9 +64,15 @@ class CartApiService {
     return CommonResponseModel.fromMap(response);
   }
 
-  static Future<CommonResponseModel> checkout() async {
-    const data = {};
+  static Future<CommonResponseModel> checkout(String email) async {
+    final data = {"email": email};
     final response = await _api.post("$baseUrl/cart/checkout", data);
+    return CommonResponseModel.fromMap(response);
+  }
+
+  static Future<CommonResponseModel> applyReferral(String code) async {
+    final body = {"email": code};
+    final response = await _api.post("$baseUrl/cart/apply-referral", body);
     return CommonResponseModel.fromMap(response);
   }
 }

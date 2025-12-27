@@ -1,6 +1,3 @@
-import 'package:freenest/model/review_model.dart';
-import 'package:freenest/model/user_model.dart';
-
 class OrderModel {
   final int id;
   final int userId;

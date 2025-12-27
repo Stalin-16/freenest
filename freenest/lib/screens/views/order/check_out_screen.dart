@@ -20,6 +20,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   List<Map<String, dynamic>> cart = [];
   bool useCredits = false; // Moved to state level
   double creditsAmount = 500.0; // Can be made dynamic from API
+  bool _isErrorVisible = false;
+  // Add these state variables for referral
+  bool _isReferralApplied = false;
+  double _referralDiscountPercentage =
+      0.0; // Store discount percentage from API
+  final TextEditingController _promoController = TextEditingController();
+  bool _isApplyingPromo = false;
 
   @override
   void initState() {
@@ -43,7 +50,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     try {
       List<CartItemModel> loadedCart = [];
       if (user != null) {
-        loadedCart = await CartApiService.getCart(user.id!);
+        loadedCart = await CartApiService.getCart();
       }
       setState(() {
         cart = loadedCart.map((e) => e.toMap()).toList();
@@ -61,9 +68,25 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
-  double get gstAmount => totalAmount * 0.18;
+  double get reffralDiscount {
+    // Apply discount only if referral is applied
+    return _isReferralApplied
+        ? totalAmount * (_referralDiscountPercentage / 100)
+        : 0.0;
+  }
 
-  double get grandTotal => totalAmount + gstAmount;
+  double get subtotalAfterDiscount {
+    return totalAmount - reffralDiscount;
+  }
+
+  double get gstAmount {
+    // Calculate GST on discounted amount
+    return subtotalAfterDiscount * 0.18;
+  }
+
+  double get grandTotal {
+    return subtotalAfterDiscount + gstAmount;
+  }
 
   double get amountToPay {
     double amount = grandTotal;
@@ -76,6 +99,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   @override
   void dispose() {
+    _promoController.dispose();
     super.dispose();
   }
 
@@ -83,7 +107,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     setState(() => isLoading = true);
     try {
       if (isLoggedIn) {
-        await CartApiService.checkout();
+        if (_isApplyingPromo) {
+          await CartApiService.checkout(_promoController.text.trim());
+        } else {
+          await CartApiService.checkout("");
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Order placed successfully!')),
         );
@@ -107,7 +135,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Your Cart'),
+        title: const Text('Your Cart',
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 20)),
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -158,6 +187,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final screenWidth = MediaQuery.of(context).size.width;
 
     return Card(
+      surfaceTintColor: isDark ? Colors.grey[900] : Colors.grey[500],
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
@@ -199,7 +229,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '3 Years Experience',
+                    '${item['experience']} Years Experience',
                     style: theme.textTheme.bodySmall?.copyWith(
                       fontSize: screenWidth > 600 ? 14 : null,
                     ),
@@ -210,9 +240,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       const Icon(Icons.star, size: 14, color: Colors.amber),
                       const SizedBox(width: 4),
                       Text(
-                        '4.8',
+                        item['rating'] != null
+                            ? item['rating'].toString()
+                            : 'N/A',
                         style: theme.textTheme.bodySmall?.copyWith(
                           fontSize: screenWidth > 600 ? 14 : null,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        '${item['workOrderCount'] ?? '0'} Work Orders',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontSize: screenWidth > 600 ? 14 : 12,
                         ),
                       ),
                     ],
@@ -258,54 +297,169 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   /// ---------------- PROMO CODE ----------------
-
   Widget _promoCodeField() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final screenWidth = MediaQuery.of(context).size.width;
 
-    return TextField(
-      decoration: InputDecoration(
-        hintText: 'Enter Referral/Promo Code',
-        hintStyle: TextStyle(
-          color: isDark ? Colors.white70 : Colors.grey[600],
-        ),
-        suffixIcon: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: TextButton(
-            onPressed: () {},
-            child: Text(
-              'Apply',
-              style: TextStyle(
-                color: isDark ? Colors.white : Colors.black,
-                fontSize: screenWidth > 600 ? 16 : null,
+    Future<void> handleApplyPromoCode() async {
+      String code = _promoController.text.trim();
+      if (code.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enter a promo code')),
+        );
+        return;
+      }
+
+      // Reset error state when trying again
+      setState(() {
+        _isApplyingPromo = true;
+        _isErrorVisible = false;
+      });
+
+      try {
+        final response = await CartApiService.applyReferral(code);
+        if (response.status == 200) {
+          double discountPercentage = 5.0; // Fixed: 5.0 not 05.0
+          setState(() {
+            _isReferralApplied = true;
+            _referralDiscountPercentage = discountPercentage;
+            _isErrorVisible = false; // Reset error on success
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Promo code applied successfully!')),
+          );
+        } else {
+          setState(() {
+            _isErrorVisible = true;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to apply promo code'),
+            ),
+          );
+        }
+      } catch (e) {
+        setState(() {
+          _isErrorVisible = true;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to apply promo code: $e')),
+        );
+      } finally {
+        setState(() => _isApplyingPromo = false);
+      }
+    }
+
+    void removeReferral() {
+      setState(() {
+        _isReferralApplied = false;
+        _referralDiscountPercentage = 0.0;
+        _promoController.clear();
+        _isErrorVisible = false; // Reset error when removing referral
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Referral code removed')),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextField(
+          controller: _promoController,
+          enabled: !_isReferralApplied,
+          decoration: InputDecoration(
+            hintText: 'Enter Referral Code',
+            hintStyle: TextStyle(
+              color: isDark ? Colors.white70 : Colors.grey[600],
+            ),
+            suffixIcon: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: _isReferralApplied
+                  ? IconButton(
+                      onPressed: removeReferral,
+                      icon:
+                          const Icon(Icons.close, color: Colors.red, size: 20),
+                      tooltip: 'Remove referral code',
+                    )
+                  : _isApplyingPromo
+                      ? SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              isDark ? Colors.white : Colors.black,
+                            ),
+                          ),
+                        )
+                      : TextButton(
+                          onPressed: handleApplyPromoCode,
+                          child: Text(
+                            'Apply',
+                            style: TextStyle(
+                              color: isDark ? Colors.white : Colors.black,
+                              fontSize: screenWidth > 600 ? 16 : null,
+                            ),
+                          ),
+                        ),
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color: _isErrorVisible
+                    ? Colors.red
+                    : (isDark ? Colors.grey[700]! : Colors.grey[300]!),
               ),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color: _isErrorVisible
+                    ? Colors.red
+                    : (isDark ? Colors.grey[700]! : Colors.grey[300]!),
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color: _isErrorVisible
+                    ? Colors.red
+                    : (isDark ? Colors.white : Colors.black),
+                width: 1.5,
+              ),
+            ),
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: screenWidth > 600 ? 20 : 16,
             ),
           ),
         ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
+        // Optional: Show error message below the field
+        if (_isErrorVisible)
+          Padding(
+            padding: const EdgeInsets.only(top: 4.0, left: 16),
+            child: Text(
+              'Invalid referral code. Please try again.',
+              style: TextStyle(
+                color: Colors.red,
+                fontSize: 12,
+              ),
+            ),
           ),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
+        if (_isReferralApplied)
+          Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: Text(
+              'Referral applied: ${_referralDiscountPercentage}% discount',
+              style: const TextStyle(
+                color: Colors.green,
+                fontSize: 14,
+              ),
+            ),
           ),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: isDark ? Colors.white : Colors.black,
-            width: 1.5,
-          ),
-        ),
-        contentPadding: EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: screenWidth > 600 ? 20 : 16,
-        ),
-      ),
+      ],
     );
   }
 
@@ -334,6 +488,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             ),
             const SizedBox(height: 12),
             _summaryRow('Item total', totalAmount),
+
+            // Show referral discount if applied
+            if (_isReferralApplied)
+              _discountRow('Referral Discount', reffralDiscount),
+
+            _summaryRow('Subtotal', subtotalAfterDiscount),
             _summaryRow('Tax GST @ 18%', gstAmount),
             const Divider(height: 24),
             _summaryRow(
@@ -388,6 +548,35 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
+  Widget _discountRow(String label, double value) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: screenWidth > 600 ? 8 : 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontSize: screenWidth > 600 ? 16 : null,
+              color: Colors.green,
+            ),
+          ),
+          Text(
+            '-₹${value.toStringAsFixed(0)}',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontSize: screenWidth > 600 ? 16 : null,
+              color: Colors.green,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _creditDeductionRow() {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -398,7 +587,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          SizedBox(width: 40), // Space to align with checkbox
+          const SizedBox(width: 40), // Space to align with checkbox
           Expanded(
             child: Text(
               'Credit Deduction',

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:freenest/config/app_config.dart';
 import 'package:freenest/model/cart_model.dart';
 import 'package:freenest/model/user_model.dart';
-import 'package:freenest/screens/login_screen.dart';
 import 'package:freenest/service/cart_api_service.dart';
 import 'package:freenest/service/cart_service.dart';
 import 'package:freenest/constants/ui_screen_routes.dart';
@@ -45,7 +44,7 @@ class _CartScreenState extends State<CartScreen> {
     try {
       List<CartItemModel> loadedCart = [];
       if (user != null) {
-        loadedCart = await CartApiService.getCart(user.id!);
+        loadedCart = await CartApiService.getCart();
       }
       setState(() {
         cart = loadedCart.map((item) => item.toMap()).toList();
@@ -95,11 +94,22 @@ class _CartScreenState extends State<CartScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final backgroundColor = isDarkMode ? Colors.black : Colors.white;
+    final textColor = isDarkMode ? Colors.white : Colors.black;
+    final cardColor = isDarkMode ? Colors.grey[900] : Colors.grey[50];
+    const primaryColor =
+        Colors.black; // You can change this to your brand color
+    const errorColor = Colors.red;
 
     if (isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+      return Scaffold(
+        backgroundColor: backgroundColor,
+        body: const Center(
+          child: CircularProgressIndicator(
+            color: primaryColor,
+          ),
+        ),
       );
     }
 
@@ -109,9 +119,42 @@ class _CartScreenState extends State<CartScreen> {
     );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('My Cart')),
+      backgroundColor: backgroundColor,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.white,
+        elevation: 1,
+        iconTheme: IconThemeData(color: textColor),
+        title: Text(
+          'My Cart',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+            color: textColor,
+          ),
+        ),
+      ),
       body: cart.isEmpty
-          ? const Center(child: Text('Your cart is empty'))
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.shopping_cart_outlined,
+                    size: 64,
+                    color: textColor.withOpacity(0.5),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Your cart is empty',
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: textColor.withOpacity(0.7),
+                    ),
+                  ),
+                ],
+              ),
+            )
           : ListView.separated(
               padding: const EdgeInsets.all(12),
               itemCount: cart.length,
@@ -119,9 +162,12 @@ class _CartScreenState extends State<CartScreen> {
               itemBuilder: (context, index) {
                 final item = cart[index];
                 return Card(
+                  surfaceTintColor: Colors.grey.shade300,
+                  color: cardColor,
+                  elevation: 2,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                  elevation: 3,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.all(12),
                     child: Row(
@@ -133,8 +179,21 @@ class _CartScreenState extends State<CartScreen> {
                             height: 60,
                             width: 60,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) =>
-                                const Icon(Icons.image_not_supported, size: 40),
+                            errorBuilder: (_, __, ___) => Container(
+                              height: 60,
+                              width: 60,
+                              decoration: BoxDecoration(
+                                color: isDarkMode
+                                    ? Colors.grey[800]
+                                    : Colors.grey[200],
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(
+                                Icons.image_not_supported,
+                                size: 30,
+                                color: textColor.withOpacity(0.5),
+                              ),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -144,37 +203,77 @@ class _CartScreenState extends State<CartScreen> {
                             children: [
                               Text(
                                 item['name'] ?? 'Untitled',
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold, fontSize: 16),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: textColor,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                               const SizedBox(height: 4),
                               Text(
                                 '₹${item['hourlyRate']}',
-                                style: TextStyle(
-                                    color: colorScheme.primary,
-                                    fontWeight: FontWeight.w500),
+                                style: const TextStyle(
+                                  color: primaryColor,
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 16,
+                                ),
                               ),
                             ],
                           ),
                         ),
                         Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             IconButton(
-                              icon: const Icon(Icons.remove_circle_outline),
+                              icon: const Icon(
+                                Icons.remove_circle_outline,
+                                color: primaryColor,
+                              ),
                               onPressed: () => _updateQuantity(
-                                  index, (item['quantity'] ?? 1) - 1),
+                                index,
+                                (item['quantity'] ?? 1) - 1,
+                              ),
                             ),
-                            Text('${item['quantity'] ?? 1}',
-                                style: const TextStyle(fontSize: 16)),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isDarkMode
+                                    ? Colors.grey[800]
+                                    : Colors.grey[200],
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                '${item['quantity'] ?? 1}',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: textColor,
+                                ),
+                              ),
+                            ),
                             IconButton(
-                              icon: const Icon(Icons.add_circle_outline),
+                              icon: const Icon(
+                                Icons.add_circle_outline,
+                                color: primaryColor,
+                              ),
                               onPressed: () => _updateQuantity(
-                                  index, (item['quantity'] ?? 1) + 1),
+                                index,
+                                (item['quantity'] ?? 1) + 1,
+                              ),
                             ),
                           ],
                         ),
+                        const SizedBox(width: 4),
                         IconButton(
-                          icon: const Icon(Icons.delete_outline),
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            color: errorColor,
+                          ),
                           onPressed: () => _removeItem(item['name']),
                         ),
                       ],
@@ -186,40 +285,130 @@ class _CartScreenState extends State<CartScreen> {
       bottomNavigationBar: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: colorScheme.surface,
-          boxShadow: const [BoxShadow(blurRadius: 5, color: Colors.black12)],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text("Total",
-                    style:
-                        TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                Text("₹${total.toStringAsFixed(2)}",
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                        color: colorScheme.primary)),
-              ],
+          color: backgroundColor,
+          border: Border(
+            top: BorderSide(
+              color: isDarkMode ? Colors.grey[800]! : Colors.grey[300]!,
+              width: 1,
             ),
-            const SizedBox(height: 10),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _proceedToCheckout,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                ),
-                child: const Text('Proceed to Checkout',
-                    style: TextStyle(fontSize: 16)),
-              ),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: isDarkMode ? Colors.black : Colors.black.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, -2),
             ),
           ],
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "Subtotal",
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: textColor.withOpacity(0.7),
+                    ),
+                  ),
+                  Text(
+                    "₹ ${total.toStringAsFixed(2)}",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      color: textColor,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "Total Items",
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: textColor.withOpacity(0.7),
+                    ),
+                  ),
+                  Text(
+                    "${cart.length} items",
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: textColor.withOpacity(0.7),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Total Amount",
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: textColor.withOpacity(0.7),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          "₹ ${total.toStringAsFixed(2)}",
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 24,
+                            color: primaryColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(
+                    width: 180,
+                    child: ElevatedButton(
+                      onPressed: _proceedToCheckout,
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 16,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        backgroundColor: Colors.black45,
+                        foregroundColor: Colors.white,
+                        elevation: 2,
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Checkout',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          SizedBox(width: 8),
+                          Icon(Icons.arrow_forward, size: 20),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

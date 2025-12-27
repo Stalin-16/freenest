@@ -1,8 +1,8 @@
 class AppConfig {
-  static const String baseUrl = "http://10.14.130.87:5000/api/v1";
+  static const String baseUrl = "http://192.168.0.112:5000/api/v1";
 
   /// Image Url
-  static const String imageUrl = "http://10.14.130.87:5000";
+  static const String imageUrl = "http://192.168.0.112:5000";
 
   //Routes
 

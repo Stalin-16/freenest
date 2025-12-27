@@ -1,4 +1,6 @@
+const dbconfig = require("../config/dbconfig");
 const ServiceProfile = require("../model/admin/serviceProfile");
+const Order = require("../model/order");
 // const createProfileCard = async (req, res) => {
 //   try {
 //     const {
@@ -95,20 +97,38 @@ exports.getAllProfilesForUsers = async (req, res) => {
         "hourlyRate",
         "tagline",
         "experienceRange",
+        "overallRating",
+        [
+          // Using Sequelize.literal to get order count
+          dbconfig.literal(
+            "(SELECT COUNT(*) FROM orders WHERE orders.profile_id = ServiceProfile.id)"
+          ),
+          "orderCount",
+        ],
       ],
+      include: [
+        {
+          model: Order,
+          as: "orders",
+          attributes: [], // Empty array means we don't want order data, just count
+          required: false,
+        },
+      ],
+      group: ["ServiceProfile.id"], // Group by profile id for count
       order: [["serviceTitle", "ASC"]],
       offset,
       limit,
+      subQuery: false, // Important for group queries with limit/offset
     });
 
     const page = Math.floor(offset / limit) + 1;
-    const totalPages = Math.ceil(count / limit);
+    const totalPages = Math.ceil(count.length / limit); // count is now an array when using group
     const hasNext = page < totalPages;
 
     res.json({
       status: 200,
       data: {
-        total: count,
+        total: count.length,
         limit,
         page,
         totalPages,

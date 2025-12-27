@@ -3,6 +3,7 @@ const ServiceProfile = require("../model/admin/serviceProfile");
 const CartDetails = require("../model/cartDetails");
 const Order = require("../model/order");
 const OrderItem = require("../model/orderItem");
+const User = require("../model/userModel");
 
 // Add item to cart
 exports.addToCart = async (req, res) => {
@@ -65,7 +66,27 @@ exports.getCart = async (req, res) => {
         {
           model: ServiceProfile,
           as: "profile",
-          attributes: ["id", "profileImage", "serviceTitle"],
+          attributes: [
+            "id",
+            "profileImage",
+            "serviceTitle",
+            "experienceRange",
+            "overallRating",
+            [
+              dbconfig.literal(
+                `(SELECT COUNT(*) FROM orders WHERE orders.profile_id = profile.id)`
+              ),
+              "orderCount",
+            ],
+          ],
+          include: [
+            {
+              model: Order,
+              as: "orders",
+              attributes: [], // Empty array means we don't want order data, just count
+              required: false,
+            },
+          ],
         },
       ],
     });
@@ -88,13 +109,11 @@ exports.getCart = async (req, res) => {
 exports.updateQuantity = async (req, res) => {
   try {
     const { profile_id, quantity } = req.body;
-
     const user_id = req.user?.id;
 
     const item = await CartDetails.findOne({
-      where: { user_id, profile_id, cart_status: "active" },
+      where: { user_id, id: profile_id, cart_status: "active" },
     });
-
     if (!item)
       return res.status(404).json({ status: 404, message: "Item not found" });
 
@@ -132,73 +151,6 @@ exports.removeFromCart = async (req, res) => {
     res.status(500).json({ status: 500, message: "Error removing item" });
   }
 };
-// exports.checkout = async (req, res) => {
-//   const transaction = await dbconfig.transaction();
-//   try {
-//     const user_id = req.user?.id;
-
-//     const cartItems = await CartDetails.findAll({
-//       where: { user_id, cart_status: "active" },
-//     });
-
-//     if (cartItems.length === 0) {
-//       return res.status(400).json({ status: 400, message: "Cart is empty" });
-//     }
-
-//     const totalPrice = cartItems.reduce(
-//       (sum, item) => sum + parseFloat(item.total_price || 0),
-//       0
-//     );
-
-//     // Create new order
-//     const newOrder = await Order.create(
-//       {
-//         user_id,
-//         total_items: cartItems.length,
-//         total_price: totalPrice,
-//         status: "order placed",
-//       },
-//       { transaction }
-//     );
-
-//     // Create order items
-//     const orderItemsData = cartItems.map((item) => ({
-//       order_id: newOrder.id,
-//       cart_id: item.id,
-//       product_name: item.product_name,
-//       quantity: item.quantity,
-//       price: item.price,
-//       total_price: item.total_price,
-//     }));
-
-//     await OrderItem.bulkCreate(orderItemsData, { transaction });
-
-//     //  Update cart items as checked out
-//     await CartDetails.update(
-//       { cart_status: "checked_out", updated_at: new Date() },
-//       { where: { user_id, cart_status: "active" }, transaction }
-//     );
-
-//     await transaction.commit();
-
-//     res.json({
-//       status: 200,
-//       message: "Checkout successful",
-//       data: {
-//         order: {
-//           order_id: newOrder.id,
-//           user_id,
-//           totalItems: cartItems.length,
-//           totalPrice,
-//         },
-//       },
-//     });
-//   } catch (error) {
-//     await transaction.rollback();
-//     console.error("Checkout error:", error);
-//     res.status(500).json({ status: 500, message: "Error during checkout" });
-//   }
-// };
 
 exports.checkout = async (req, res) => {
   const transaction = await dbconfig.transaction();
@@ -332,5 +284,33 @@ exports.syncCart = async (req, res) => {
       message: "Internal server error",
       error: error.message,
     });
+  }
+};
+
+// Apply referral code
+exports.applyReferralCode = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res
+        .status(400)
+        .json({ status: 400, message: "Referral code are required." });
+    }
+
+    const user = await User.findOne({ where: { email, role: "user" } });
+    if (!user) {
+      return res
+        .status(404)
+        .json({ status: 404, message: "Referral code is invalid." });
+    }
+
+    return res.status(200).json({
+      status: 200,
+      message: "Referral code applied successfully",
+      data: { referredUser: true },
+    });
+  } catch (error) {
+    console.error("Error applying referral code:", error);
+    res.status(500).json({ status: 500, message: "Internal server error" });
   }
 };

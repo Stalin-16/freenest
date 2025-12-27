@@ -4,6 +4,7 @@ import 'package:freenest/screens/views/order/cart_screen.dart';
 import 'package:freenest/screens/views/home/home_screen.dart';
 import 'package:freenest/screens/views/order/order_screen.dart';
 import 'package:freenest/screens/views/profile/profile_screen.dart';
+import 'package:freenest/service/cart_api_service.dart';
 import 'package:freenest/service/cart_service.dart';
 import 'package:freenest/service/shared_service.dart';
 
@@ -39,7 +40,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _loadCartCount() async {
-    final cart = await CartService.getCart();
+    final cart = await CartApiService.getCart();
     setState(() => _cartCount = cart.length);
   }
 
@@ -126,7 +127,17 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
               ]
-            : null, // No actions for other screens
+            : _selectedIndex == 1
+                ? []
+                : [
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: IconButton(
+                        icon: const Icon(Icons.logout, color: Colors.red),
+                        onPressed: _logout,
+                      ),
+                    )
+                  ], // No actions for other screens
       ),
       body: SafeArea(
         child: Container(

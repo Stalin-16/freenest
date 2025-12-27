@@ -15,7 +15,7 @@ class ProfileService {
     try {
       final offset = (page - 1) * limit;
 
-      final res = await _helper.getwithoutToken(
+      final res = await _helper.get(
           "$baseUrl/profile-customer?serviceSubCategoryId=$serviceSubCategoryId&offset=$offset&limit=$limit");
       final commonResponse = CommonResponseModel.fromMap(res);
 

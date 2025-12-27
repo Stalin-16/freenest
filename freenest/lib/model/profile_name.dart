@@ -23,8 +23,8 @@ class ProfileList {
           (map['tagline'] ?? ''), // Use tagline as fallback
       profileImage: map['profileImage'] ?? '',
       experience: map['experienceRange'] ?? '',
-      rating: map['rating']?.toDouble() ?? 0.0,
-      workOrders: 0, // Default
+      rating: map['overallRating']?.toDouble() ?? 0.0,
+      workOrders: map['orderCount'] ?? 0, // Default
       price: map['hourlyRate']?.toDouble() ?? 0.0,
     );
   }
