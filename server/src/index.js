@@ -3,11 +3,8 @@ const cors = require("cors");
 const errorHandler = require("./middleware/errorHandler");
 const registerRoutes = require("./routes/indexRoutes");
 const path = require("path");
-const {
-  User,
-  ServiceProfile,
-  CartDetails,  
-} = require("./model/association");
+const { User, ServiceProfile, CartDetails } = require("./model/association");
+const seedAdminUser = require("./utils/adminUsers");
 
 const app = express();
 
@@ -20,12 +17,10 @@ app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 // Register API routes
 registerRoutes(app);
 
+// seedAdminUser();
+
 // Error handler
 // app.use(errorHandler);
 
 // Start server
-app.listen(5000, () =>
-  console.log(" Server running at 5000")
-);
-
-
+app.listen(5000, () => console.log(" Server running at 5000"));

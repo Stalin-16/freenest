@@ -1,22 +1,35 @@
 import { useEffect, useState } from "react";
 import { FiMoreVertical } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
+import ServiceProfiles from "../../services/ProfilService";
 
 const ServiceProfileList = () => {
   const [profiles, setProfiles] = useState([]);
   const [menuOpenIndex, setMenuOpenIndex] = useState(null);
   const navigate = useNavigate();
-
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
-    fetch("http://localhost:5000/api/v1/admin/service-profiles")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success) setProfiles(data.data);
-      })
-      .catch((err) => console.error("Error fetching profiles:", err));
+    fetchProfiles();
   }, []);
 
-  const handleCardClick = (id) => navigate(`/admin/service-profiles/${id}/edit`);
+  const fetchProfiles = async () => {
+    try {
+      setLoading(true);
+
+      const response = await ServiceProfiles.getAllProfiles();
+
+      if (response.data.success) {
+        setProfiles(response.data.data || []);
+      }
+    } catch (err) {
+      console.error("Error fetching profiles:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCardClick = (id) =>
+    navigate(`/admin/service-profiles/${id}/edit`);
   const handleCreateNew = () => navigate("/admin/service-profiles/create");
 
   return (

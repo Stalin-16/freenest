@@ -1,8 +1,6 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
-
-
-const API_BASE_URL = "http://localhost:5000/api/v1/admin";
+import OrderService from "../../services/OrderSerivces";
 
 const AdminOrdersPage = () => {
   const [orders, setOrders] = useState([]);
@@ -16,14 +14,13 @@ const AdminOrdersPage = () => {
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_BASE_URL}/order/get-all-orders-admin`);
+      const response = await OrderService.getAllOrders();
 
       if (response.data.status === 200) {
         setOrders(response.data.data || []);
       }
     } catch (error) {
       console.error("Failed to fetch orders:", error);
-      alert("Failed to fetch orders");
     } finally {
       setLoading(false);
     }
@@ -32,9 +29,12 @@ const AdminOrdersPage = () => {
   const handleStatusChange = async (orderId, newStatus) => {
     try {
       setUpdating(orderId);
-      const res = await axios.put(`${API_BASE_URL}/order/update-status/${orderId}`, {
-        status: newStatus,
-      });
+      const res = await axios.put(
+        `${API_BASE_URL}/order/update-status/${orderId}`,
+        {
+          status: newStatus,
+        }
+      );
 
       if (res.data.status === 200) {
         alert("Order status updated successfully!");
@@ -60,7 +60,9 @@ const AdminOrdersPage = () => {
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
-      <h1 className="text-2xl font-semibold mb-4 text-gray-800">🛒 Manage Orders</h1>
+      <h1 className="text-2xl font-semibold mb-4 text-gray-800">
+        🛒 Manage Orders
+      </h1>
 
       {orders.length === 0 ? (
         <p className="text-gray-500 text-center mt-10">No orders found.</p>
@@ -115,7 +117,7 @@ const AdminOrdersPage = () => {
                       }
                       className="border rounded-md px-2 py-1 text-sm"
                     >
-                      <option value="">Select Status    </option>
+                      <option value="">Select Status </option>
                       <option value="Assigned">Assigned</option>
                       <option value="Inprogress">In Progress</option>
                       <option value="Completed">Completed</option>

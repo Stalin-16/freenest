@@ -19,13 +19,9 @@ CartDetails.belongsTo(ServiceProfile, {
   foreignKey: "profile_id",
 });
 
-// 🛒 CartDetails ↔ OrderItem
-CartDetails.hasOne(OrderItem, { foreignKey: "cart_id" });
-OrderItem.belongsTo(CartDetails, { foreignKey: "cart_id" });
-
 // 🧾 Order ↔ User
-Order.belongsTo(User, { foreignKey: "user_id" });
-User.hasMany(Order, { foreignKey: "user_id" });
+Order.belongsTo(User, { as: "user", foreignKey: "user_id" });
+User.hasMany(Order, { as: "orders", foreignKey: "user_id" });
 
 // 🧾 Order ↔ OrderItem
 Order.hasMany(OrderItem, { foreignKey: "order_id" });
@@ -35,15 +31,15 @@ Order.hasOne(Review, { foreignKey: "orderId", as: "reviewDetails" });
 Review.belongsTo(Order, { foreignKey: "orderId" });
 
 // 🧩 ServiceProfile ↔ Order
-ServiceProfile.hasMany(Order, { foreignKey: "profile_id", as: "orders" });
+ServiceProfile.hasMany(OrderItem, { foreignKey: "profile_id", as: "orders" });
 
-Order.belongsTo(ServiceProfile, {
+OrderItem.belongsTo(ServiceProfile, {
   as: "profile",
   targetKey: "id",
   foreignKey: "profile_id",
 });
 
-Order.belongsTo(User, {
+OrderItem.belongsTo(User, {
   as: "assignedUser",
   targetKey: "id",
   foreignKey: "assigned_to",

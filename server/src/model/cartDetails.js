@@ -12,7 +12,7 @@ const CartDetails = sequelize.define("CartDetails", {
     allowNull: false,
   },
   profile_id: {
-    type: DataTypes.BIGINT,
+    type: DataTypes.INTEGER,
     allowNull: false,
   },
   quantity: {

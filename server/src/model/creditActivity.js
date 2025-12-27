@@ -1,6 +1,7 @@
-const { Sequelize, DataTypes } = require("sequelize");
+const { DataTypes } = require("sequelize");
+const dbconfig = require("../config/dbconfig");
 
-const UserCredits = Sequelize.define(
+const UserCredits = dbconfig.define(
   "UserCredits",
   {
     id: {
@@ -20,18 +21,26 @@ const UserCredits = Sequelize.define(
       type: DataTypes.INTEGER,
       allowNull: true,
     },
-
-    // amount: {
-    //   type: DataTypes.DECIMAL(10, 2),
-    //   allowNull: false,
-    // },
+    amount: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+    },
+    status: {
+      type: DataTypes.ENUM("0", "1"),
+      allowNull: false,
+      defaultValue: "0",
+    },
     description: {
       type: DataTypes.STRING,
       allowNull: true,
     },
     created_at: {
       type: DataTypes.DATE,
-      defaultValue: Sequelize.NOW,
+      defaultValue: DataTypes.NOW,
+    },
+    updated_at: {
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
     },
   },
   {

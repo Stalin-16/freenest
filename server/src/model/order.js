@@ -5,7 +5,7 @@ const Order = sequelize.define(
   "Order",
   {
     id: {
-      type: DataTypes.BIGINT,
+      type: DataTypes.INTEGER,
       autoIncrement: true,
       primaryKey: true,
     },
@@ -13,43 +13,15 @@ const Order = sequelize.define(
       type: DataTypes.INTEGER,
       allowNull: false,
     },
-    assigned_to: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-    },
-    total_hours: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-    },
-    profile_id: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-    },
-    total_price: {
+    base_amount: {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
+      defaultValue: 0,
     },
-    quantity: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-    },
-    price_per_unit: {
+    gst_amount: {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
-    },
-    status: {
-      type: DataTypes.ENUM(
-        "order placed",
-        "assigned",
-        "in progress",
-        "completed",
-        "reviewed"
-      ),
-      defaultValue: "order placed",
-    },
-    reviewId: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
+      defaultValue: 0,
     },
     created_at: {
       type: DataTypes.DATE,

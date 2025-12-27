@@ -24,10 +24,6 @@ const Review = sequelize.define(
     orderId: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      references: {
-        model: "Orders",
-        key: "id",
-      },
     },
     rating: {
       type: DataTypes.DECIMAL(2, 1),

@@ -1,6 +1,7 @@
 const dbconfig = require("../config/dbconfig");
 const ServiceProfile = require("../model/admin/serviceProfile");
 const CartDetails = require("../model/cartDetails");
+const UserCredits = require("../model/creditActivity");
 const Order = require("../model/order");
 const OrderItem = require("../model/orderItem");
 const User = require("../model/userModel");
@@ -152,14 +153,144 @@ exports.removeFromCart = async (req, res) => {
   }
 };
 
+// exports.checkout = async (req, res) => {
+//   const transaction = await dbconfig.transaction();
+//   try {
+//     const user_id = req.user?.id;
+//     const { email } = req.body;
+
+//     const cartItems = await CartDetails.findAll({
+//       where: { user_id, cart_status: "active" },
+//       transaction,
+//     });
+
+//     if (cartItems.length === 0) {
+//       await transaction.rollback();
+//       return res.status(400).json({ status: 400, message: "Cart is empty" });
+//     }
+
+//     // Calculate TOTAL checkout amount BEFORE the loop
+//     const totalCheckoutAmount = cartItems.reduce(
+//       (sum, item) => sum + parseFloat(item.total_price || 0),
+//       0
+//     );
+
+//     // Calculate 5% credit ONCE based on total checkout
+//     const totalCredit = (totalCheckoutAmount * 5) / 100;
+
+//     // Group cart items by profile_id
+//     const groupedByProfile = {};
+
+//     cartItems.forEach((item) => {
+//       const profileId = item.profile_id;
+//       if (!groupedByProfile[profileId]) {
+//         groupedByProfile[profileId] = [];
+//       }
+//       groupedByProfile[profileId].push(item);
+//     });
+
+//     // Array to collect all order IDs
+//     const orderIds = [];
+
+//     for (const [profileId, profileCartItems] of Object.entries(
+//       groupedByProfile
+//     )) {
+//       // Calculate totals for this profile's items
+//       const profileTotal = profileCartItems.reduce(
+//         (sum, item) => sum + parseFloat(item.total_price || 0),
+//         0
+//       );
+
+//       const totalHours = profileCartItems.reduce(
+//         (sum, item) => sum + parseFloat(item.quantity || 0),
+//         0
+//       );
+
+//       const order = await Order.create(
+//         {
+//           user_id,
+//           profile_id: profileId,
+//           total_hours: totalHours,
+//           price_per_unit: profileTotal / totalHours || 0,
+//           total_price: email ? profileTotal - totalCredit : profileTotal,
+//           quantity: totalHours,
+//           status: "order placed",
+//           created_at: new Date(),
+//           updated_at: new Date(),
+//         },
+//         { transaction }
+//       );
+
+//       orderIds.push(order.id);
+
+//       // Update cart items for this profile as checked out
+//       const cartItemIds = profileCartItems.map((item) => item.id);
+//       await CartDetails.update(
+//         {
+//           cart_status: "checked_out",
+//           updated_at: new Date(),
+//         },
+//         {
+//           where: {
+//             id: cartItemIds,
+//             user_id,
+//             cart_status: "active",
+//           },
+//           transaction,
+//         }
+//       );
+//     }
+
+//     // Create credit ONCE after processing all orders
+//     if (email && totalCredit > 0) {
+//       await UserCredits.create(
+//         {
+//           user_id,
+//           activity_type: "credit",
+//           amount: totalCredit,
+//           status: "0",
+//           order_id: orderIds.join(","), // Store comma-separated order IDs or pick one
+//           description: `5% credit for checkout with email ${email}. Orders: ${orderIds.join(
+//             ", "
+//           )}`,
+//           created_at: new Date(),
+//         },
+//         { transaction }
+//       );
+//     }
+
+//     await transaction.commit();
+
+//     res.json({
+//       status: 200,
+//       message: "Order Placed Successfully",
+//       data: {
+//         profilesProcessed: Object.keys(groupedByProfile).length,
+//         totalItems: cartItems.length,
+//         totalCheckoutAmount,
+//         creditEarned: totalCredit,
+//       },
+//     });
+//   } catch (error) {
+//     await transaction.rollback();
+//     console.error("Checkout error:", error);
+//     res.status(500).json({
+//       status: 500,
+//       message: "Error during checkout",
+//       error: process.env.NODE_ENV === "development" ? error.message : undefined,
+//     });
+//   }
+// };
+
 exports.checkout = async (req, res) => {
   const transaction = await dbconfig.transaction();
   try {
     const user_id = req.user?.id;
+    const { email } = req.body;
 
     const cartItems = await CartDetails.findAll({
       where: { user_id, cart_status: "active" },
-      transaction, // Include in transaction for consistency
+      transaction,
     });
 
     if (cartItems.length === 0) {
@@ -167,60 +298,97 @@ exports.checkout = async (req, res) => {
       return res.status(400).json({ status: 400, message: "Cart is empty" });
     }
 
-    // Group cart items by profile_id
-    const groupedByProfile = {};
+    // Calculate TOTAL checkout amount
+    const totalCheckoutAmount = cartItems.reduce(
+      (sum, item) => sum + parseFloat(item.total_price || 0),
+      0
+    );
 
-    cartItems.forEach((item) => {
-      const profileId = item.profile_id;
-      if (!groupedByProfile[profileId]) {
-        groupedByProfile[profileId] = [];
-      }
-      groupedByProfile[profileId].push(item);
-    });
+    // Calculate 5% credit ONCE based on total checkout
+    const totalCredit = (totalCheckoutAmount * 5) / 100;
 
-    for (const [profileId, profileCartItems] of Object.entries(
-      groupedByProfile
-    )) {
-      // Calculate totals for this profile's items
-      const profileTotal = profileCartItems.reduce(
-        (sum, item) => sum + parseFloat(item.total_price || 0),
-        0
-      );
+    // Apply credit if email is provided
+    const amountAfterCredit = email
+      ? totalCheckoutAmount - totalCredit
+      : totalCheckoutAmount;
 
-      const totalHours = profileCartItems.reduce(
-        (sum, item) => sum + parseFloat(item.quantity || 0),
-        0
-      );
-      await Order.create(
+    // Calculate 18% GST on amount after credit
+    const gstAmount = (amountAfterCredit * 18) / 100;
+
+    // Calculate final amount (after credit + GST)
+    const finalAmount = amountAfterCredit + gstAmount;
+
+    // Calculate total hours/quantity
+    const totalHours = cartItems.reduce(
+      (sum, item) => sum + parseFloat(item.quantity || 0),
+      0
+    );
+
+    // Create single order
+    const order = await Order.create(
+      {
+        user_id,
+        total_hours: totalHours,
+        total_price: finalAmount, // Store final amount including GST
+        base_amount: totalCheckoutAmount,
+        gst_amount: gstAmount,
+        quantity: totalHours,
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      { transaction }
+    );
+
+    // Create order items for each cart item
+    for (const cartItem of cartItems) {
+      await OrderItem.create(
         {
-          user_id,
-          profile_id: profileId,
-          total_hours: totalHours,
-          price_per_unit: profileTotal / totalHours || 0,
-          quantity: totalHours,
-          total_price: profileTotal,
+          order_id: order.id,
+          profile_id: cartItem.profile_id,
+          cart_id: cartItem.id,
           status: "order placed",
+          product_name:
+            cartItem.product_name ||
+            `Service from Profile ${cartItem.profile_id}`,
+          quantity: cartItem.quantity,
+          price: cartItem.price_per_unit || 0,
+          total_price: cartItem.total_price || 0,
           created_at: new Date(),
-          updated_at: new Date(),
         },
         { transaction }
       );
+    }
 
-      // Update cart items for this profile as checked out
-      const cartItemIds = profileCartItems.map((item) => item.id);
-      await CartDetails.update(
-        {
-          cart_status: "checked_out",
-          updated_at: new Date(),
+    // Update all cart items as checked out
+    const cartItemIds = cartItems.map((item) => item.id);
+    await CartDetails.update(
+      {
+        cart_status: "checked_out",
+        updated_at: new Date(),
+      },
+      {
+        where: {
+          id: cartItemIds,
+          user_id,
+          cart_status: "active",
         },
+        transaction,
+      }
+    );
+
+    // Create credit if email is provided and credit amount > 0
+    if (email && totalCredit > 0) {
+      await UserCredits.create(
         {
-          where: {
-            id: cartItemIds,
-            user_id,
-            cart_status: "active",
-          },
-          transaction,
-        }
+          user_id,
+          activity_type: "credit",
+          amount: totalCredit,
+          status: "0",
+          order_id: order.id.toString(),
+          description: `5% credit for checkout with email ${email}. Order: ${order.id}`,
+          created_at: new Date(),
+        },
+        { transaction }
       );
     }
 
@@ -230,8 +398,22 @@ exports.checkout = async (req, res) => {
       status: 200,
       message: "Order Placed Successfully",
       data: {
-        profilesProcessed: Object.keys(groupedByProfile).length,
+        orderId: order.id,
         totalItems: cartItems.length,
+        baseAmount: totalCheckoutAmount,
+        creditApplied: email ? totalCredit : 0,
+        amountAfterCredit: amountAfterCredit,
+        gstAmount: gstAmount,
+        finalAmount: finalAmount,
+        gstPercentage: "18%",
+        creditEarned: totalCredit,
+        breakdown: {
+          subtotal: totalCheckoutAmount,
+          discount: email ? totalCredit : 0,
+          taxableAmount: amountAfterCredit,
+          gst: gstAmount,
+          total: finalAmount,
+        },
       },
     });
   } catch (error) {

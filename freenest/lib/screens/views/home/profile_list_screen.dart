@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:freenest/config/app_config.dart';
+import 'package:freenest/model/cart_model.dart';
 import 'package:freenest/model/profile_name.dart';
 import 'package:freenest/screens/views/home/draggable_pop.dart';
+import 'package:freenest/service/cart_api_service.dart';
 import 'package:freenest/service/profile_service.dart';
 import 'package:freenest/widgets/reffera_card_widget.dart';
 import 'package:freenest/widgets/shimmer_efferct.dart';
+import 'package:freenest/widgets/snackbar_utils.dart';
 
 class ProfileListScreen extends StatefulWidget {
   static const routeName = "/profile-list";
@@ -27,7 +30,7 @@ class _ProfileListScreenState extends State<ProfileListScreen> {
   bool _hasMoreData = true;
   int _totalProfiles = 0;
   List<ProfileList> _profiles = [];
-
+  final CartApiService _cartApiService = CartApiService();
   @override
   void initState() {
     super.initState();
@@ -115,6 +118,20 @@ class _ProfileListScreenState extends State<ProfileListScreen> {
 
   Future<void> _refreshProfiles() async {
     await _loadInitialProfiles();
+  }
+
+  Future<CartItemModel> _addToCart(Map<String, dynamic> product) async {
+    try {
+      final cartItem = await _cartApiService.addToCart(product);
+      if (cartItem != null) {
+        return cartItem;
+      } else {
+        throw Exception("Failed to add item to cart - API returned null");
+      }
+    } catch (e) {
+      print('Error in _addToCart: $e');
+      throw Exception("Failed to add item to cart: $e");
+    }
   }
 
   @override
@@ -375,8 +392,28 @@ class _ProfileListScreenState extends State<ProfileListScreen> {
                                             height: 32,
                                             child: ElevatedButton(
                                               onPressed: () {
-                                                print(
-                                                    "Add pressed for ${p.id}");
+                                                final cartItem = {
+                                                  'profile_id': p.id,
+                                                  'user_id': p.serviceTitle,
+                                                  'quantity': 1,
+                                                  'price_per_unit': p.price,
+                                                  'total_price': p.price * 1,
+                                                  'cart_status': 'active'
+                                                };
+                                                _addToCart(cartItem)
+                                                    .then((value) {
+                                                  CustomSnackBar.showSuccess(
+                                                    context: context,
+                                                    message:
+                                                        'Added to cart successfully!',
+                                                  );
+                                                }).catchError((error) {
+                                                  CustomSnackBar.showError(
+                                                    context: context,
+                                                    message:
+                                                        'Failed to add to cart.',
+                                                  );
+                                                });
                                               },
                                               style: ElevatedButton.styleFrom(
                                                 backgroundColor: isDark

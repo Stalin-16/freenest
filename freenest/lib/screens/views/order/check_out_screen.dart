@@ -5,6 +5,7 @@ import 'package:freenest/model/cart_model.dart';
 import 'package:freenest/model/user_model.dart';
 import 'package:freenest/service/cart_api_service.dart';
 import 'package:freenest/service/shared_service.dart';
+import 'package:freenest/widgets/snackbar_utils.dart';
 
 class CheckoutScreen extends StatefulWidget {
   static String routeName = UiScreenRoutes.checkout;
@@ -27,6 +28,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       0.0; // Store discount percentage from API
   final TextEditingController _promoController = TextEditingController();
   bool _isApplyingPromo = false;
+
+  String _appliedPromoCode = "";
 
   @override
   void initState() {
@@ -107,20 +110,24 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     setState(() => isLoading = true);
     try {
       if (isLoggedIn) {
-        if (_isApplyingPromo) {
-          await CartApiService.checkout(_promoController.text.trim());
+        // Use the stored applied promo code
+        final response = await CartApiService.checkout(_appliedPromoCode);
+        if (response.status == 200) {
+          CustomSnackBar.showSuccess(
+            context: context,
+            message: 'Order placed successfully!',
+          );
+          Navigator.pop(context);
         } else {
-          await CartApiService.checkout("");
+          setState(() => isLoading = false);
+          CustomSnackBar.showError(
+            context: context,
+            message: response.message!,
+          );
         }
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Order placed successfully!')),
-        );
       }
-      Navigator.pop(context);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Checkout failed: $e')),
-      );
+      CustomSnackBar.showError(context: context, message: e.toString());
     } finally {
       setState(() => isLoading = false);
     }
@@ -135,6 +142,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        scrolledUnderElevation: 0,
         title: const Text('Your Cart',
             style: TextStyle(fontWeight: FontWeight.w600, fontSize: 20)),
       ),
@@ -310,7 +318,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         return;
       }
 
-      // Reset error state when trying again
       setState(() {
         _isApplyingPromo = true;
         _isErrorVisible = false;
@@ -319,32 +326,35 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       try {
         final response = await CartApiService.applyReferral(code);
         if (response.status == 200) {
-          double discountPercentage = 5.0; // Fixed: 5.0 not 05.0
+          double discountPercentage = 5.0; // This should come from API response
           setState(() {
             _isReferralApplied = true;
             _referralDiscountPercentage = discountPercentage;
-            _isErrorVisible = false; // Reset error on success
+            _appliedPromoCode = code; // Store the applied code
+            _isErrorVisible = false;
           });
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Promo code applied successfully!')),
+          CustomSnackBar.showSuccess(
+            context: context,
+            message:
+                'Referral code applied! You got $discountPercentage% discount.',
           );
         } else {
           setState(() {
             _isErrorVisible = true;
           });
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Failed to apply promo code'),
-            ),
+          CustomSnackBar.showWarning(
+            context: context,
+            message: 'Invalid promo code. Please try again.',
           );
         }
       } catch (e) {
         setState(() {
           _isErrorVisible = true;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to apply promo code: $e')),
+        CustomSnackBar.showError(
+          context: context,
+          message: 'Error applying promo code. Please try again.',
         );
       } finally {
         setState(() => _isApplyingPromo = false);
@@ -355,11 +365,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       setState(() {
         _isReferralApplied = false;
         _referralDiscountPercentage = 0.0;
+        _appliedPromoCode = ""; // Clear the applied code
         _promoController.clear();
-        _isErrorVisible = false; // Reset error when removing referral
+        _isErrorVisible = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Referral code removed')),
+      CustomSnackBar.showInfo(
+        context: context,
+        message: 'Referral code removed.',
       );
     }
 
@@ -438,8 +450,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         ),
         // Optional: Show error message below the field
         if (_isErrorVisible)
-          Padding(
-            padding: const EdgeInsets.only(top: 4.0, left: 16),
+          const Padding(
+            padding: EdgeInsets.only(top: 4.0, left: 16),
             child: Text(
               'Invalid referral code. Please try again.',
               style: TextStyle(
@@ -452,7 +464,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           Padding(
             padding: const EdgeInsets.only(top: 8.0),
             child: Text(
-              'Referral applied: ${_referralDiscountPercentage}% discount',
+              'Referral applied: $_referralDiscountPercentage% discount',
               style: const TextStyle(
                 color: Colors.green,
                 fontSize: 14,

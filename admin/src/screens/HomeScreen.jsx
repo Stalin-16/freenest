@@ -2,6 +2,7 @@
 import { useState } from "react";
 import ServiceProfileList from "./Service/ServiceProfileList";
 import AdminOrdersPage from "./Orders/AdminOrdersPage";
+import FreelancerListPage from "./Freelancer/FreeLancerListPage";
 
 function HomeScreen() {
   const [activeTab, setActiveTab] = useState("service-profile");
@@ -53,12 +54,7 @@ function HomeScreen() {
             <p>Clients management coming soon...</p>
           </div>
         )}
-        {activeTab === "freelancers" && (
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-4">Freelancers</h2>
-            <p>Freelancers management coming soon...</p>
-          </div>
-        )}
+        {activeTab === "freelancers" && <FreelancerListPage />}
       </main>
     </div>
   );

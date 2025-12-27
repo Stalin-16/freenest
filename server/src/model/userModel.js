@@ -25,12 +25,22 @@ const User = sequelize.define(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    mobile: {
+      type: DataTypes.BIGINT,
+      allowNull: true,
+    },
 
     // Role-based access (default user)
     role: {
       type: DataTypes.ENUM("user", "admin", "guest", "freelancer"),
       allowNull: false,
       defaultValue: "user",
+    },
+
+    status: {
+      type: DataTypes.ENUM("approved", "pending"),
+      allowNull: true,
+      defaultValue: "pending",
     },
 
     // Whether the account is active
@@ -40,11 +50,13 @@ const User = sequelize.define(
     },
     //Otp code
     otp: { type: DataTypes.STRING, allowNull: true },
+    experience: { type: DataTypes.STRING, allowNull: true },
+    hourlyRate: { type: DataTypes.FLOAT, allowNull: true },
     //Otp Expires
     otpExpires: { type: DataTypes.DATE, allowNull: true },
-    overallRating: { type: DataTypes.BIGINT, default: 0 },
-    totalRatings: { type: DataTypes.BIGINT, default: 0 },
-    ratingCount: { type: DataTypes.BIGINT, default: 0 },
+    overallRating: { type: DataTypes.INTEGER, default: 0 },
+    totalRatings: { type: DataTypes.INTEGER, default: 0 },
+    ratingCount: { type: DataTypes.INTEGER, default: 0 },
   },
   {
     tableName: "users",

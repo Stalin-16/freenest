@@ -4,7 +4,7 @@ const ServiceProfile = sequelize.define(
   "ServiceProfile",
   {
     id: {
-      type: DataTypes.BIGINT,
+      type: DataTypes.INTEGER,
       primaryKey: true,
       autoIncrement: true,
     },
@@ -24,9 +24,9 @@ const ServiceProfile = sequelize.define(
     faqs: { type: DataTypes.JSON, allowNull: true },
 
     // 6. Review & Rating
-    overallRating: { type: DataTypes.BIGINT, default: 0 },
-    totalRatings: { type: DataTypes.BIGINT, default: 0 },
-    ratingCount: { type: DataTypes.BIGINT, default: 0 },
+    overallRating: { type: DataTypes.INTEGER, default: 0 },
+    totalRatings: { type: DataTypes.INTEGER, default: 0 },
+    ratingCount: { type: DataTypes.INTEGER, default: 0 },
     reviewComments: { type: DataTypes.TEXT },
 
     // 7. Freelance Partners Reference

@@ -1,8 +1,10 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
+import ServiceProfiles from "../../services/ProfilService";
 
 const ServiceProfile = () => {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
   const serviceCategories = [
     { id: 1, title: "Analyst" },
     { id: 2, title: "Web Developer" },
@@ -75,13 +77,6 @@ const ServiceProfile = () => {
         (subCat) => subCat.categoryId === parseInt(formData.serviceCategoryId)
       );
       setFilteredSubCategories(filtered);
-
-      // Reset subcategory when category changes
-      setFormData((prev) => ({
-        ...prev,
-        serviceSubCategory: "",
-        serviceSubCategoryId: "",
-      }));
     } else {
       setFilteredSubCategories([]);
     }
@@ -141,33 +136,43 @@ const ServiceProfile = () => {
 
   useEffect(() => {
     if (id) {
-      fetch(`${import.meta.env.VITE_API_URL}/service-profiles/${id}`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.success) {
-            const profile = data.data;
-            setFormData({
-              ...formData,
-              ...profile,
-              // serviceCategoryId: profile.serviceCategoryId || "",
-              // serviceSubCategoryId: profile.serviceSubCategoryId || "",
-              deliverables: Array.isArray(profile.deliverables)
-                ? profile.deliverables
-                : JSON.parse(profile.deliverables || "[]"),
-              processSteps: Array.isArray(profile.processSteps)
-                ? profile.processSteps
-                : JSON.parse(profile.processSteps || "[]"),
-              promises: Array.isArray(profile.promises)
-                ? profile.promises
-                : JSON.parse(profile.promises || "[]"),
-              faqs: Array.isArray(profile.faqs)
-                ? profile.faqs
-                : JSON.parse(profile.faqs || "[]"),
-            });
-          }
-        });
+      fetchProfileById(id);
     }
   }, [id]);
+
+  const fetchProfileById = async (profileId) => {
+    try {
+      setLoading(true);
+
+      const response = await ServiceProfiles.getProfileById(profileId);
+
+      if (response.success && response.data) {
+        const profile = response.data;
+        setFormData({
+          ...formData,
+          ...profile,
+          serviceCategoryId: profile.serviceCategoryId || "",
+          serviceSubCategoryId: profile.serviceSubCategoryId || "",
+          deliverables: Array.isArray(profile.deliverables)
+            ? profile.deliverables
+            : JSON.parse(profile.deliverables || "[]"),
+          processSteps: Array.isArray(profile.processSteps)
+            ? profile.processSteps
+            : JSON.parse(profile.processSteps || "[]"),
+          promises: Array.isArray(profile.promises)
+            ? profile.promises
+            : JSON.parse(profile.promises || "[]"),
+          faqs: Array.isArray(profile.faqs)
+            ? profile.faqs
+            : JSON.parse(profile.faqs || "[]"),
+        });
+      }
+    } catch (err) {
+      console.error("Error fetching profile:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -185,68 +190,15 @@ const ServiceProfile = () => {
     if (formData.profileImage) {
       formDataToSend.append("profileImage", formData.profileImage);
     }
+    const result = id
+      ? await ServiceProfiles.updateServiceProfile(id, formDataToSend)
+      : await ServiceProfiles.createServiceProfile(formDataToSend);
 
-    const method = id ? "PUT" : "POST";
-    const url = id
-      ? `${import.meta.env.VITE_API_URL}/service-profiles/${id}`
-      : `${import.meta.env.VITE_API_URL}/service-profiles`;
-
-    const res = await fetch(url, { method, body: formDataToSend });
-    const result = await res.json();
+    console.error("Result:", result);
     if (result.success) {
       navigate(-1);
     } else {
       alert("Error: " + result.message);
-    }
-  };
-
-  const handleSubmits = async (e) => {
-    e.preventDefault();
-
-    const formDataToSend = new FormData();
-
-    // Append all form data
-    formDataToSend.append("serviceTitle", formData.serviceTitle);
-    formDataToSend.append("serviceCategory", formData.serviceCategory);
-    // ... append all other fields
-
-    // Append JSON fields as strings
-    formDataToSend.append(
-      "deliverables",
-      JSON.stringify(formData.deliverables)
-    );
-    formDataToSend.append(
-      "processSteps",
-      JSON.stringify(formData.processSteps)
-    );
-    formDataToSend.append("promises", JSON.stringify(formData.promises));
-    formDataToSend.append("faqs", JSON.stringify(formData.faqs));
-
-    // Append file if exists
-    if (formData.profileImage) {
-      formDataToSend.append("profileImage", formData.profileImage);
-    }
-
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/service-profiles`,
-        {
-          method: "POST",
-          body: formDataToSend,
-        }
-      );
-
-      const result = await response.json();
-
-      if (result.success) {
-        alert("Service Profile Created Successfully!");
-        // Reset form or redirect
-      } else {
-        alert("Error: " + result.message);
-      }
-    } catch (error) {
-      console.error("Error submitting form:", error);
-      alert("Error creating service profile");
     }
   };
 
