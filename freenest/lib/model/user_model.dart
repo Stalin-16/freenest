@@ -6,17 +6,15 @@ class UserModel {
   String? lastName;
   String? userName;
   String? email;
-  String? emailVerifiedAt;
-  String? password;
+  int? phoneNo;
   bool? isGuest;
   UserModel({
     this.id,
     this.name,
     this.lastName,
     this.userName,
+    this.phoneNo,
     this.email,
-    this.emailVerifiedAt,
-    this.password,
     this.isGuest,
   });
 
@@ -27,6 +25,7 @@ class UserModel {
     String? userName,
     String? email,
     String? emailVerifiedAt,
+    int? phoneNo,
     String? password,
     bool? isGuest,
   }) {
@@ -36,8 +35,7 @@ class UserModel {
       lastName: lastName ?? this.lastName,
       userName: userName ?? this.userName,
       email: email ?? this.email,
-      emailVerifiedAt: emailVerifiedAt ?? this.emailVerifiedAt,
-      password: password ?? this.password,
+      phoneNo: phoneNo ?? this.phoneNo,
       isGuest: isGuest ?? this.isGuest,
     );
   }
@@ -49,8 +47,7 @@ class UserModel {
       'lastName': lastName,
       'userName': userName,
       'email': email,
-      'emailVerifiedAt': emailVerifiedAt,
-      'password': password,
+      'phoneNo': phoneNo,
       'isGuest': isGuest,
     };
   }
@@ -62,10 +59,7 @@ class UserModel {
       lastName: map['lastName'] != null ? map['lastName'] as String : null,
       userName: map['userName'] != null ? map['userName'] as String : null,
       email: map['email'] != null ? map['email'] as String : null,
-      emailVerifiedAt: map['emailVerifiedAt'] != null
-          ? map['emailVerifiedAt'] as String
-          : null,
-      password: map['password'] != null ? map['password'] as String : null,
+      phoneNo: map['phoneNo'] != null ? map['phoneNo'] as int : 0,
       isGuest: map['isGuest'] != null ? map['isGuest'] as bool : null,
     );
   }
@@ -77,7 +71,7 @@ class UserModel {
 
   @override
   String toString() {
-    return 'UserModel(id: $id, name: $name, lastName: $lastName, userName: $userName, email: $email, emailVerifiedAt: $emailVerifiedAt, password: $password) isGuest: $isGuest)';
+    return 'UserModel(id: $id, name: $name, lastName: $lastName, userName: $userName, email: $email, isGuest: $isGuest)';
   }
 
   @override
@@ -89,8 +83,7 @@ class UserModel {
         other.lastName == lastName &&
         other.userName == userName &&
         other.email == email &&
-        other.emailVerifiedAt == emailVerifiedAt &&
-        other.password == password &&
+        other.phoneNo == phoneNo &&
         other.isGuest == isGuest;
   }
 
@@ -101,8 +94,7 @@ class UserModel {
         lastName.hashCode ^
         userName.hashCode ^
         email.hashCode ^
-        emailVerifiedAt.hashCode ^
-        password.hashCode ^
+        phoneNo.hashCode ^
         isGuest.hashCode;
   }
 }

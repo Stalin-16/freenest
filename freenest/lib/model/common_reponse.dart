@@ -6,12 +6,14 @@ class CommonResponseModel {
   String? message;
   String? devMessage;
   bool? error;
+  final Map<String, dynamic>? pagination;
   CommonResponseModel({
     this.status,
     required this.data,
     this.message,
     this.devMessage,
     this.error,
+    this.pagination,
   });
 
   CommonResponseModel copyWith({
@@ -27,6 +29,7 @@ class CommonResponseModel {
       message: message ?? this.message,
       devMessage: devMessage ?? this.devMessage,
       error: error ?? this.error,
+      pagination: pagination ?? this.pagination,
     );
   }
 
@@ -37,6 +40,7 @@ class CommonResponseModel {
       'message': message,
       'devMessage': devMessage,
       'error': error,
+      'pagination': pagination
     };
   }
 
@@ -48,6 +52,7 @@ class CommonResponseModel {
       devMessage:
           map['devMessage'] != null ? map['devMessage'] as String : null,
       error: map['error'] != null ? map['error'] as bool : null,
+      pagination: map['pagination'] as Map<String, dynamic>?,
     );
   }
 
@@ -103,7 +108,8 @@ class CommonResponseModel {
         other.data == data &&
         other.message == message &&
         other.devMessage == devMessage &&
-        other.error == error;
+        other.error == error &&
+        other.pagination == pagination;
   }
 
   @override
@@ -112,6 +118,7 @@ class CommonResponseModel {
         data.hashCode ^
         message.hashCode ^
         devMessage.hashCode ^
-        error.hashCode;
+        error.hashCode ^
+        pagination.hashCode;
   }
 }

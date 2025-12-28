@@ -11,12 +11,14 @@ import 'package:freenest/service/shared_service.dart';
 class HomePage extends StatefulWidget {
   static String routeName = UiScreenRoutes.home;
   const HomePage({super.key});
+  static final GlobalKey<_HomePageState> homePageKey =
+      GlobalKey<_HomePageState>();
 
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   int _selectedIndex = 0;
   int _cartCount = 0;
 
@@ -25,23 +27,48 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    _loadCartCount();
+    WidgetsBinding.instance.addObserver(this);
     _screens.addAll([
       const HomeScreen(),
       const OrderScreen(),
       const ProfileScreen(),
     ]);
+    _loadCartCount();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  // This will trigger when the app state changes (comes to foreground)
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _loadCartCount();
+    }
   }
 
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
+    // Reload cart count when switching to home tab
+    if (index == 0) {
+      _loadCartCount();
+    }
   }
 
   Future<void> _loadCartCount() async {
-    final cart = await CartApiService.getCart();
-    setState(() => _cartCount = cart.length);
+    try {
+      final cart = await CartApiService.getCart();
+      if (mounted) {
+        setState(() => _cartCount = cart.length);
+      }
+    } catch (e) {
+      print('Error loading cart count: $e');
+    }
   }
 
   void _logout() async {
@@ -93,11 +120,14 @@ class _HomePageState extends State<HomePage> {
                             child: IconButton(
                               icon: const Icon(Icons.shopping_cart_outlined),
                               onPressed: () async {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (_) => const CartScreen()),
-                                ).then((_) => _loadCartCount());
+                                // Use await to wait for cart screen to close
+                                await Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (_) => const CartScreen()))
+                                    .then((_) {
+                                  _loadCartCount();
+                                });
                               },
                             ),
                           ),
@@ -142,14 +172,17 @@ class _HomePageState extends State<HomePage> {
       body: SafeArea(
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: _screens[_selectedIndex],
+          child: IndexedStack(
+            index: _selectedIndex,
+            children: _screens,
+          ),
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: Colors.indigoAccent,
+        selectedItemColor: Theme.of(context).colorScheme.primary,
         unselectedItemColor: Colors.grey,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),

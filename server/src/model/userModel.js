@@ -25,7 +25,7 @@ const User = sequelize.define(
       type: DataTypes.STRING,
       allowNull: true,
     },
-    mobile: {
+    phoneNo: {
       type: DataTypes.BIGINT,
       allowNull: true,
     },

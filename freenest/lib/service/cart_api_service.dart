@@ -64,8 +64,9 @@ class CartApiService {
     return CommonResponseModel.fromMap(response);
   }
 
-  static Future<CommonResponseModel> checkout(String email) async {
-    final data = {"email": email};
+  static Future<CommonResponseModel> checkout(
+      String email, bool useCredits) async {
+    final data = {"email": email, "use_credits": useCredits};
     final response = await _api.post("$baseUrl/cart/checkout", data);
     return CommonResponseModel.fromMap(response);
   }

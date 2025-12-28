@@ -1,3 +1,4 @@
+const { Sequelize } = require("sequelize");
 const dbconfig = require("../config/dbconfig");
 const ServiceProfile = require("../model/admin/serviceProfile");
 const CartDetails = require("../model/cartDetails");
@@ -286,7 +287,7 @@ exports.checkout = async (req, res) => {
   const transaction = await dbconfig.transaction();
   try {
     const user_id = req.user?.id;
-    const { email } = req.body;
+    const { email, use_credits } = req.body;
 
     const cartItems = await CartDetails.findAll({
       where: { user_id, cart_status: "active" },
@@ -298,25 +299,71 @@ exports.checkout = async (req, res) => {
       return res.status(400).json({ status: 400, message: "Cart is empty" });
     }
 
-    // Calculate TOTAL checkout amount
-    const totalCheckoutAmount = cartItems.reduce(
-      (sum, item) => sum + parseFloat(item.total_price || 0),
-      0
+    // Helper function to round to 2 decimal places
+    const roundTo2 = (num) => Math.round((num + Number.EPSILON) * 100) / 100;
+
+    // Calculate TOTAL checkout amount (subtotal) - round each item
+    const subtotal = cartItems.reduce((sum, item) => {
+      const itemTotal = parseFloat(item.total_price || 0);
+      return roundTo2(sum + itemTotal);
+    }, 0);
+
+    // Check if email exists in system before applying 5% credit
+    let emailCreditAmount = 0;
+    let referralUserId = null;
+
+    if (email) {
+      const referredUser = await User.findOne({
+        where: { email },
+        transaction,
+      });
+
+      if (referredUser) {
+        // Only apply 5% credit if user exists
+        emailCreditAmount = roundTo2((subtotal * 5) / 100);
+        referralUserId = referredUser.id;
+      }
+      // If user doesn't exist, emailCreditAmount remains 0 (silently ignored)
+    }
+
+    // Calculate GST on subtotal (18%) and round
+    const gstAmount = roundTo2((subtotal * 18) / 100);
+
+    // Calculate total before credits and round
+    const totalBeforeCredits = roundTo2(subtotal + gstAmount);
+
+    // Apply email credit (if any) and round
+    const amountAfterEmailCredit = roundTo2(
+      totalBeforeCredits - emailCreditAmount
     );
 
-    // Calculate 5% credit ONCE based on total checkout
-    const totalCredit = (totalCheckoutAmount * 5) / 100;
+    // Handle use_credits (user's accumulated credits)
+    let usedCreditsAmount = 0;
+    if (use_credits) {
+      const userAvailableCredits = await getUserAvailableCredits(
+        user_id,
+        transaction
+      );
+      // Only use credits if user has them
+      if (userAvailableCredits > 0) {
+        // Don't let credits make the amount negative, and round
+        usedCreditsAmount = roundTo2(
+          Math.min(userAvailableCredits, amountAfterEmailCredit)
+        );
+      }
+    }
 
-    // Apply credit if email is provided
-    const amountAfterCredit = email
-      ? totalCheckoutAmount - totalCredit
-      : totalCheckoutAmount;
+    // Final amount after all credits and round
+    const finalAmount = roundTo2(amountAfterEmailCredit - usedCreditsAmount);
 
-    // Calculate 18% GST on amount after credit
-    const gstAmount = (amountAfterCredit * 18) / 100;
-
-    // Calculate final amount (after credit + GST)
-    const finalAmount = amountAfterCredit + gstAmount;
+    // Validate final amount is not negative
+    if (finalAmount < 0) {
+      await transaction.rollback();
+      return res.status(400).json({
+        status: 400,
+        message: "Credit amount cannot exceed total amount",
+      });
+    }
 
     // Calculate total hours/quantity
     const totalHours = cartItems.reduce(
@@ -324,20 +371,38 @@ exports.checkout = async (req, res) => {
       0
     );
 
-    // Create single order
+    // Create single order - store rounded values
     const order = await Order.create(
       {
         user_id,
         total_hours: totalHours,
-        total_price: finalAmount, // Store final amount including GST
-        base_amount: totalCheckoutAmount,
+        total_price: finalAmount,
+        base_amount: subtotal,
+        total_amount: finalAmount,
         gst_amount: gstAmount,
+        credit_applied: roundTo2(emailCreditAmount + usedCreditsAmount),
         quantity: totalHours,
         created_at: new Date(),
         updated_at: new Date(),
       },
       { transaction }
     );
+
+    if (use_credits && usedCreditsAmount > 0) {
+      // Create debit transaction for used credits
+      await UserCredits.create(
+        {
+          user_id,
+          activity_type: "debit",
+          amount: usedCreditsAmount,
+          status: "1",
+          order_id: order.id,
+          description: `Used ${usedCreditsAmount} credits for checkout`,
+          created_at: new Date(),
+        },
+        { transaction }
+      );
+    }
 
     // Create order items for each cart item
     for (const cartItem of cartItems) {
@@ -376,16 +441,16 @@ exports.checkout = async (req, res) => {
       }
     );
 
-    // Create credit if email is provided and credit amount > 0
-    if (email && totalCredit > 0) {
+    // Create pending credit entry only if email user exists
+    if (referralUserId && emailCreditAmount > 0) {
       await UserCredits.create(
         {
-          user_id,
+          user_id: referralUserId,
           activity_type: "credit",
-          amount: totalCredit,
-          status: "0",
+          amount: emailCreditAmount,
+          status: "0", // Pending status
           order_id: order.id.toString(),
-          description: `5% credit for checkout with email ${email}. Order: ${order.id}`,
+          description: `5% credit for referral checkout with email ${email}. Order: ${order.id}`,
           created_at: new Date(),
         },
         { transaction }
@@ -400,19 +465,23 @@ exports.checkout = async (req, res) => {
       data: {
         orderId: order.id,
         totalItems: cartItems.length,
-        baseAmount: totalCheckoutAmount,
-        creditApplied: email ? totalCredit : 0,
-        amountAfterCredit: amountAfterCredit,
+        subtotal: subtotal,
         gstAmount: gstAmount,
+        totalBeforeCredits: totalBeforeCredits,
+        emailCreditApplied: emailCreditAmount,
+        usedCreditsApplied: usedCreditsAmount,
+        totalCreditApplied: roundTo2(emailCreditAmount + usedCreditsAmount),
         finalAmount: finalAmount,
         gstPercentage: "18%",
-        creditEarned: totalCredit,
+        creditEarned: emailCreditAmount,
+        emailUserExists: referralUserId !== null, // Add this flag
         breakdown: {
-          subtotal: totalCheckoutAmount,
-          discount: email ? totalCredit : 0,
-          taxableAmount: amountAfterCredit,
+          subtotal: subtotal,
           gst: gstAmount,
-          total: finalAmount,
+          totalBeforeCredits: totalBeforeCredits,
+          emailDiscount: emailCreditAmount,
+          creditsUsed: usedCreditsAmount,
+          finalTotal: finalAmount,
         },
       },
     });
@@ -426,6 +495,37 @@ exports.checkout = async (req, res) => {
     });
   }
 };
+// Helper function to get user's available credits
+async function getUserAvailableCredits(user_id, transaction) {
+  const creditResult = await UserCredits.findAll({
+    attributes: [
+      "activity_type",
+      [Sequelize.fn("SUM", Sequelize.col("amount")), "total_amount"],
+    ],
+    where: {
+      user_id,
+      status: "1",
+    },
+    group: ["activity_type"],
+    transaction,
+    raw: true,
+  });
+
+  let availableCredits = 0;
+  creditResult.forEach((item) => {
+    if (item.activity_type === "credit") {
+      availableCredits += parseFloat(item.total_amount || 0);
+    } else if (item.activity_type === "debit") {
+      availableCredits -= parseFloat(item.total_amount || 0);
+    }
+  });
+
+  // Round to 2 decimal places
+  return Math.max(
+    0,
+    Math.round((availableCredits + Number.EPSILON) * 100) / 100
+  );
+}
 
 exports.syncCart = async (req, res) => {
   try {

@@ -23,6 +23,11 @@ const Order = sequelize.define(
       allowNull: false,
       defaultValue: 0,
     },
+    total_amount: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+      defaultValue: 0,
+    },
     created_at: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,

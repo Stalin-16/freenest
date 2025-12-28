@@ -76,13 +76,6 @@ class SharedService {
     }
   }
 
-  // static Future<void> setUserProfile(UserProfileModel? userProfile) async {
-  //   print("userProfile         $userProfile");
-  //   final SharedPreferences storage = await _storage;
-  //   await setProfileImage(userProfile!.profileLocation);
-  //   storage.setString("userProfile", userProfile.toJson());
-  // }
-
   static Future<void> setProfileImage(String? userProfileImage) async {
     final SharedPreferences storage = await _storage;
     storage.setString("userProfileImage", userProfileImage ?? "");
@@ -93,12 +86,6 @@ class SharedService {
 
     return storage.getString("userProfileImage");
   }
-
-  // static Future<UserProfileModel?> getUserProfile() async {
-  //   final SharedPreferences storage = await _storage;
-  //   var user = storage.getString("userProfile");
-  //   return user != null ? UserProfileModel.fromJson(user) : null;
-  //
 
   static Future<bool> isLoggedIn() async {
     TokenModel? token = await SharedService.getToken();

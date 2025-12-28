@@ -16,7 +16,7 @@ class CartScreen extends StatefulWidget {
 }
 
 class _CartScreenState extends State<CartScreen> {
-  List<Map<String, dynamic>> cart = [];
+  List<CartItemModel> cart = [];
   bool isLoggedIn = false;
   bool isLoading = true;
 
@@ -47,7 +47,7 @@ class _CartScreenState extends State<CartScreen> {
         loadedCart = await CartApiService.getCart();
       }
       setState(() {
-        cart = loadedCart.map((item) => item.toMap()).toList();
+        cart = loadedCart;
         isLoading = false;
       });
     } catch (e) {
@@ -57,26 +57,35 @@ class _CartScreenState extends State<CartScreen> {
 
   Future<void> _updateQuantity(int index, int newQuantity) async {
     if (newQuantity <= 0) {
-      await _removeItem(cart[index]['id']);
+      await _removeItem(cart[index].id);
       return;
     }
 
     setState(() {
-      cart[index]['quantity'] = newQuantity;
+      cart[index] = CartItemModel(
+        id: cart[index].id,
+        name: cart[index].name,
+        quantity: newQuantity,
+        hourlyRate: cart[index].hourlyRate,
+        imageUrl: cart[index].imageUrl,
+        experience: cart[index].experience,
+        rating: cart[index].rating,
+        workOrderCount: cart[index].workOrderCount,
+      );
     });
 
     try {
       final response =
-          await CartApiService.updateQuantity(cart[index]['id'], newQuantity);
+          await CartApiService.updateQuantity(cart[index].id, newQuantity);
     } catch (e) {
       print("Error updating quantity: $e");
     }
   }
 
-  Future<void> _removeItem(String title) async {
-    await CartService.removeFromCart(title);
+  Future<void> _removeItem(String id) async {
+    await CartService.removeFromCart(id);
     setState(() {
-      cart.removeWhere((item) => item['title'] == title);
+      cart.removeWhere((item) => item.id == id);
     });
   }
 
@@ -92,20 +101,34 @@ class _CartScreenState extends State<CartScreen> {
     Navigator.pushNamed(context, "/login");
   }
 
+  Widget _buildRatingStars(int? rating) {
+    if (rating == null) return Container();
+
+    return Row(
+      children: List.generate(5, (index) {
+        return Icon(
+          index < (rating ~/ 2) ? Icons.star : Icons.star_border,
+          size: 14,
+          color: Colors.amber,
+        );
+      }),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final backgroundColor = isDarkMode ? Colors.black : Colors.white;
-    final textColor = isDarkMode ? Colors.white : Colors.black;
-    final cardColor = isDarkMode ? Colors.grey[900] : Colors.grey[50];
-    const primaryColor =
-        Colors.black; // You can change this to your brand color
+    final backgroundColor = isDarkMode ? Colors.black45 : Colors.white;
+    final textColor = isDarkMode ? Colors.white : Colors.black45;
+    final cardColor = isDarkMode ? Colors.black45 : Colors.white;
+    final borderColor = isDarkMode ? Colors.grey[800] : Colors.grey[300];
+    final primaryColor = Colors.black45;
     const errorColor = Colors.red;
 
     if (isLoading) {
       return Scaffold(
         backgroundColor: backgroundColor,
-        body: const Center(
+        body: Center(
           child: CircularProgressIndicator(
             color: primaryColor,
           ),
@@ -115,14 +138,14 @@ class _CartScreenState extends State<CartScreen> {
 
     final total = cart.fold<double>(
       0,
-      (sum, item) => sum + (item['hourlyRate'] ?? 0) * (item['quantity'] ?? 1),
+      (sum, item) => sum + (item.hourlyRate) * (item.quantity),
     );
 
     return Scaffold(
       backgroundColor: backgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.white,
+        backgroundColor: isDarkMode ? Colors.black45 : Colors.white,
+        surfaceTintColor: isDarkMode ? Colors.black45 : Colors.white,
         elevation: 1,
         iconTheme: IconThemeData(color: textColor),
         title: Text(
@@ -161,27 +184,37 @@ class _CartScreenState extends State<CartScreen> {
               separatorBuilder: (_, __) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final item = cart[index];
-                return Card(
-                  surfaceTintColor: Colors.grey.shade300,
-                  color: cardColor,
-                  elevation: 2,
-                  shape: RoundedRectangleBorder(
+                return Container(
+                  decoration: BoxDecoration(
+                    color: cardColor,
                     borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: borderColor!,
+                      width: 1,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: Padding(
                     padding: const EdgeInsets.all(12),
                     child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(8),
                           child: Image.network(
-                            "${AppConfig.imageUrl}${item['imageUrl']}",
-                            height: 60,
-                            width: 60,
+                            "${AppConfig.imageUrl}${item.imageUrl}",
+                            height: 80,
+                            width: 80,
                             fit: BoxFit.cover,
                             errorBuilder: (_, __, ___) => Container(
-                              height: 60,
-                              width: 60,
+                              height: 80,
+                              width: 80,
                               decoration: BoxDecoration(
                                 color: isDarkMode
                                     ? Colors.grey[800]
@@ -202,79 +235,146 @@ class _CartScreenState extends State<CartScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                item['name'] ?? 'Untitled',
+                                item.name,
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
                                   color: textColor,
                                 ),
-                                maxLines: 1,
+                                maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
                               const SizedBox(height: 4),
-                              Text(
-                                '₹${item['hourlyRate']}',
-                                style: const TextStyle(
-                                  color: primaryColor,
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 16,
+
+                              // Experience and Rating Row (like in the image)
+                              Row(
+                                children: [
+                                  if (item.experience != null) ...[
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: isDarkMode
+                                            ? Colors.grey[800]
+                                            : Colors.grey[100],
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        item.experience!,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: textColor,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                  ],
+                                  if (item.rating != null) ...[
+                                    _buildRatingStars(item.rating),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '${item.rating!.toDouble() / 2}',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: textColor.withOpacity(0.7),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+
+                              const SizedBox(height: 4),
+
+                              // Work Order Count (like in the image)
+                              if (item.workOrderCount != null)
+                                Text(
+                                  '${item.workOrderCount} Work Orders',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: textColor.withOpacity(0.7),
+                                  ),
                                 ),
+
+                              const SizedBox(height: 8),
+
+                              // Price and Quantity Controls
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    '₹${item.hourlyRate.toStringAsFixed(2)}/hr',
+                                    style: TextStyle(
+                                      color: primaryColor,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IconButton(
+                                        icon: Icon(
+                                          Icons.remove_circle_outline,
+                                          color: primaryColor,
+                                        ),
+                                        onPressed: () => _updateQuantity(
+                                          index,
+                                          item.quantity - 1,
+                                        ),
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
+                                      ),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: isDarkMode
+                                              ? Colors.grey[800]
+                                              : Colors.grey[100],
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                        child: Text(
+                                          '${item.quantity}',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w500,
+                                            color: textColor,
+                                          ),
+                                        ),
+                                      ),
+                                      IconButton(
+                                        icon: Icon(
+                                          Icons.add_circle_outline,
+                                          color: primaryColor,
+                                        ),
+                                        onPressed: () => _updateQuantity(
+                                          index,
+                                          item.quantity + 1,
+                                        ),
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      IconButton(
+                                        icon: Icon(
+                                          Icons.delete_outline,
+                                          color: errorColor,
+                                        ),
+                                        onPressed: () => _removeItem(item.id),
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ),
                             ],
                           ),
-                        ),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(
-                                Icons.remove_circle_outline,
-                                color: primaryColor,
-                              ),
-                              onPressed: () => _updateQuantity(
-                                index,
-                                (item['quantity'] ?? 1) - 1,
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: isDarkMode
-                                    ? Colors.grey[800]
-                                    : Colors.grey[200],
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                '${item['quantity'] ?? 1}',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: textColor,
-                                ),
-                              ),
-                            ),
-                            IconButton(
-                              icon: const Icon(
-                                Icons.add_circle_outline,
-                                color: primaryColor,
-                              ),
-                              onPressed: () => _updateQuantity(
-                                index,
-                                (item['quantity'] ?? 1) + 1,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(width: 4),
-                        IconButton(
-                          icon: const Icon(
-                            Icons.delete_outline,
-                            color: errorColor,
-                          ),
-                          onPressed: () => _removeItem(item['name']),
                         ),
                       ],
                     ),
@@ -285,16 +385,16 @@ class _CartScreenState extends State<CartScreen> {
       bottomNavigationBar: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: backgroundColor,
+          color: cardColor,
           border: Border(
             top: BorderSide(
-              color: isDarkMode ? Colors.grey[800]! : Colors.grey[300]!,
+              color: borderColor!,
               width: 1,
             ),
           ),
           boxShadow: [
             BoxShadow(
-              color: isDarkMode ? Colors.black : Colors.black.withOpacity(0.1),
+              color: Colors.black.withOpacity(0.1),
               blurRadius: 8,
               offset: const Offset(0, -2),
             ),
@@ -364,7 +464,7 @@ class _CartScreenState extends State<CartScreen> {
                         const SizedBox(height: 4),
                         Text(
                           "₹ ${total.toStringAsFixed(2)}",
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 24,
                             color: primaryColor,
@@ -385,7 +485,7 @@ class _CartScreenState extends State<CartScreen> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        backgroundColor: Colors.black45,
+                        backgroundColor: primaryColor,
                         foregroundColor: Colors.white,
                         elevation: 2,
                       ),

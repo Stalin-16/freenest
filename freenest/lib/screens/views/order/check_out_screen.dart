@@ -1,8 +1,10 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:freenest/config/app_config.dart';
 import 'package:freenest/constants/ui_screen_routes.dart';
 import 'package:freenest/model/cart_model.dart';
 import 'package:freenest/model/user_model.dart';
+import 'package:freenest/service/account_service.dart';
 import 'package:freenest/service/cart_api_service.dart';
 import 'package:freenest/service/shared_service.dart';
 import 'package:freenest/widgets/snackbar_utils.dart';
@@ -19,17 +21,21 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   bool isLoading = false;
   bool isLoggedIn = false;
   List<Map<String, dynamic>> cart = [];
-  bool useCredits = false; // Moved to state level
-  double creditsAmount = 500.0; // Can be made dynamic from API
+  bool useCredits = false;
+  double creditsAmount = 0;
   bool _isErrorVisible = false;
-  // Add these state variables for referral
   bool _isReferralApplied = false;
-  double _referralDiscountPercentage =
-      0.0; // Store discount percentage from API
+  double _referralDiscountPercentage = 0.0;
   final TextEditingController _promoController = TextEditingController();
   bool _isApplyingPromo = false;
-
   String _appliedPromoCode = "";
+
+  final AccountService _accountService = AccountService();
+
+  // Helper function to round to 2 decimal places
+  double roundTo2(double value) {
+    return (value * 100).roundToDouble() / 100;
+  }
 
   @override
   void initState() {
@@ -41,8 +47,20 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     isLoggedIn = await SharedService.isLoggedIn();
     if (isLoggedIn) {
       await _loadCart();
+      await _loadCreditBalance();
     } else {
       setState(() => isLoading = false);
+    }
+  }
+
+  Future<void> _loadCreditBalance() async {
+    try {
+      final response = await _accountService.getCurrentBalance();
+      setState(() {
+        creditsAmount = roundTo2(response.data!);
+      });
+    } catch (e) {
+      print(e);
     }
   }
 
@@ -56,7 +74,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         loadedCart = await CartApiService.getCart();
       }
       setState(() {
-        cart = loadedCart.map((e) => e.toMap()).toList();
+        cart = loadedCart.map((e) {
+          final map = e.toMap();
+          // Round cart item values
+          map['hourlyRate'] = roundTo2(map['hourlyRate']);
+          map['quantity'] = roundTo2(map['quantity']);
+          return map;
+        }).toList();
         isLoading = false;
       });
     } catch (e) {
@@ -67,37 +91,42 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   double get totalAmount {
     return cart.fold(
       0,
-      (sum, item) => sum + (item['hourlyRate'] * item['quantity']),
+      (sum, item) => roundTo2(sum + (item['hourlyRate'] * item['quantity'])),
     );
   }
 
   double get reffralDiscount {
     // Apply discount only if referral is applied
     return _isReferralApplied
-        ? totalAmount * (_referralDiscountPercentage / 100)
+        ? roundTo2(totalAmount * (_referralDiscountPercentage / 100))
         : 0.0;
   }
 
   double get subtotalAfterDiscount {
-    return totalAmount - reffralDiscount;
+    return roundTo2(totalAmount - reffralDiscount);
   }
 
   double get gstAmount {
     // Calculate GST on discounted amount
-    return subtotalAfterDiscount * 0.18;
+    return roundTo2(totalAmount * 0.18);
   }
 
   double get grandTotal {
-    return subtotalAfterDiscount + gstAmount;
+    return roundTo2(subtotalAfterDiscount + gstAmount);
   }
 
   double get amountToPay {
     double amount = grandTotal;
     if (useCredits) {
-      amount -= creditsAmount;
+      amount = roundTo2(amount - creditsAmount);
     }
     // Ensure amount is not negative
-    return amount < 0 ? 0.0 : amount;
+    return amount < 0 ? 0.0 : roundTo2(amount);
+  }
+
+  // Helper to format amount with proper rounding
+  String formatAmount(double amount) {
+    return '₹${roundTo2(amount).toStringAsFixed(2)}';
   }
 
   @override
@@ -110,14 +139,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     setState(() => isLoading = true);
     try {
       if (isLoggedIn) {
-        // Use the stored applied promo code
-        final response = await CartApiService.checkout(_appliedPromoCode);
+        final response =
+            await CartApiService.checkout(_appliedPromoCode, useCredits);
         if (response.status == 200) {
           CustomSnackBar.showSuccess(
             context: context,
             message: 'Order placed successfully!',
           );
-          Navigator.pop(context);
+          Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
         } else {
           setState(() => isLoading = false);
           CustomSnackBar.showError(
@@ -271,7 +300,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  '₹${item['hourlyRate']}',
+                  formatAmount(item['hourlyRate']),
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                     fontSize: screenWidth > 600 ? 18 : null,
@@ -290,7 +319,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     ),
                   ),
                   child: Text(
-                    item['quantity'].toString(),
+                    item['quantity'].toStringAsFixed(0),
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontSize: screenWidth > 600 ? 15 : null,
                     ),
@@ -326,11 +355,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       try {
         final response = await CartApiService.applyReferral(code);
         if (response.status == 200) {
-          double discountPercentage = 5.0; // This should come from API response
+          double discountPercentage =
+              roundTo2(5.0); // This should come from API response
           setState(() {
             _isReferralApplied = true;
             _referralDiscountPercentage = discountPercentage;
-            _appliedPromoCode = code; // Store the applied code
+            _appliedPromoCode = code;
             _isErrorVisible = false;
           });
 
@@ -365,7 +395,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       setState(() {
         _isReferralApplied = false;
         _referralDiscountPercentage = 0.0;
-        _appliedPromoCode = ""; // Clear the applied code
+        _appliedPromoCode = "";
         _promoController.clear();
         _isErrorVisible = false;
       });
@@ -448,7 +478,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             ),
           ),
         ),
-        // Optional: Show error message below the field
         if (_isErrorVisible)
           const Padding(
             padding: EdgeInsets.only(top: 4.0, left: 16),
@@ -464,7 +493,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           Padding(
             padding: const EdgeInsets.only(top: 8.0),
             child: Text(
-              'Referral applied: $_referralDiscountPercentage% discount',
+              'Referral applied: ${_referralDiscountPercentage.toStringAsFixed(1)}% discount',
               style: const TextStyle(
                 color: Colors.green,
                 fontSize: 14,
@@ -532,8 +561,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 Expanded(
                   child: Text(
                     useCredits
-                        ? 'Using Credits ($creditsAmount)'
-                        : 'Use Credits ($creditsAmount)',
+                        ? 'Using Credits (${formatAmount(creditsAmount)})'
+                        : 'Use Credits (${formatAmount(creditsAmount)})',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontSize: screenWidth > 600 ? 16 : null,
                     ),
@@ -578,7 +607,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             ),
           ),
           Text(
-            '-₹${value.toStringAsFixed(0)}',
+            '-${formatAmount(value)}',
             style: theme.textTheme.bodyMedium?.copyWith(
               fontSize: screenWidth > 600 ? 16 : null,
               color: Colors.green,
@@ -610,7 +639,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             ),
           ),
           Text(
-            '-₹${creditsAmount.toStringAsFixed(0)}',
+            '-${formatAmount(creditsAmount)}',
             style: theme.textTheme.bodyMedium?.copyWith(
               fontSize: screenWidth > 600 ? 16 : null,
               color: Colors.green,
@@ -646,7 +675,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   ),
           ),
           Text(
-            '₹${value.toStringAsFixed(0)}',
+            formatAmount(value),
             style: isLarge
                 ? TextStyle(
                     fontSize: screenWidth > 600 ? 24 : 20,
@@ -692,13 +721,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             : Border.all(color: Colors.grey[100]!),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.end, // Right align the button
+        mainAxisAlignment: MainAxisAlignment.end,
         children: [
           ElevatedButton(
             onPressed: isLoading ? null : _placeOrder,
             style: ElevatedButton.styleFrom(
               backgroundColor: isDark ? Colors.white : Colors.black45,
-              foregroundColor: isDark ? Colors.black : Colors.white,
+              foregroundColor: isDark ? Colors.black45 : Colors.white,
               padding: EdgeInsets.symmetric(
                 horizontal: screenWidth > 600 ? 48 : 40,
                 vertical: screenWidth > 600 ? 20 : 16,
@@ -708,7 +737,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               ),
             ),
             child: Text(
-              'Pay ₹${amountToPay.toStringAsFixed(0)}',
+              'Pay ${formatAmount(amountToPay)}',
               style: TextStyle(
                 fontSize: screenWidth > 600 ? 18 : 16,
                 fontWeight: FontWeight.bold,

@@ -194,5 +194,31 @@ const generateGuestToken = async (req, res) => {
     });
   }
 };
+const updateUser = async (req, res) => {
+  try {
+    const { id, name, phoneNo } = req.body;
+    const user = await User.findByPk(id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    user.name = name;
+    user.phoneNo = phoneNo;
+    await user.save();
+    return res
+      .status(200)
+      .json({ status: 200, message: "User updated successfully" });
+  } catch (error) {
+    console.error("Error updating user:", error);
+    return res
+      .status(500)
+      .json({ status: 500, message: "Internal server error" });
+  }
+};
 
-module.exports = { sendOtp, verifyOtp, googleLogin, generateGuestToken };
+module.exports = {
+  sendOtp,
+  verifyOtp,
+  googleLogin,
+  generateGuestToken,
+  updateUser,
+};
