@@ -1,6 +1,6 @@
 const dbconfig = require("../config/dbconfig");
 const ServiceProfile = require("../model/admin/serviceProfile");
-const Order = require("../model/order");
+const OrderItem = require("../model/orderItem");
 // const createProfileCard = async (req, res) => {
 //   try {
 //     const {
@@ -108,7 +108,7 @@ exports.getAllProfilesForUsers = async (req, res) => {
       ],
       include: [
         {
-          model: Order,
+          model: OrderItem,
           as: "orders",
           attributes: [], // Empty array means we don't want order data, just count
           required: false,

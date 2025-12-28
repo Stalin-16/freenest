@@ -16,8 +16,6 @@ const freelancerController = {
         sortOrder = "DESC",
       } = req.body;
 
-      console.log(req.body);
-
       const pageNum = parseInt(page);
       const limitNum = parseInt(limit);
       const offset = (pageNum - 1) * limitNum;

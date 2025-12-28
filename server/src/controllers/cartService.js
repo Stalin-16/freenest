@@ -75,16 +75,16 @@ exports.getCart = async (req, res) => {
             "overallRating",
             [
               dbconfig.literal(
-                `(SELECT COUNT(*) FROM orders WHERE orders.profile_id = profile.id)`
+                `(SELECT COUNT(*) FROM order_items WHERE order_items.profile_id = profile.id)`
               ),
               "orderCount",
             ],
           ],
           include: [
             {
-              model: Order,
+              model: OrderItem,
               as: "orders",
-              attributes: [], // Empty array means we don't want order data, just count
+              attributes: [],
               required: false,
             },
           ],

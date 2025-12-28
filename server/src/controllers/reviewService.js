@@ -1,6 +1,7 @@
 const dbconfig = require("../config/dbconfig");
 const ServiceProfile = require("../model/admin/serviceProfile");
 const Order = require("../model/order");
+const OrderItem = require("../model/orderItem");
 const Review = require("../model/review");
 const User = require("../model/userModel");
 
@@ -102,10 +103,10 @@ exports.createReview = async (req, res) => {
   try {
     console.log("Create review request body:", req.body);
     const userId = req.user.id;
-    const { orderId, rating, comment } = req.body;
+    const { orderItemId, rating, comment } = req.body;
 
     // Validate input
-    if (!orderId || !rating || !comment) {
+    if (!orderItemId || !rating || !comment) {
       await transaction.rollback();
       return res.status(400).json({
         success: false,
@@ -122,9 +123,9 @@ exports.createReview = async (req, res) => {
     }
 
     // Check if order exists and is completed
-    const order = await Order.findOne({
+    const order = await OrderItem.findOne({
       where: {
-        id: orderId,
+        id: orderItemId,
         status: "completed",
       },
       transaction,
@@ -140,7 +141,7 @@ exports.createReview = async (req, res) => {
 
     // Check if review already exists
     const existingReview = await Review.findOne({
-      where: { orderId },
+      where: { orderItemId },
       transaction,
     });
 
@@ -155,7 +156,7 @@ exports.createReview = async (req, res) => {
     // Create review
     const review = await Review.create(
       {
-        orderId,
+        orderItemId,
         rating,
         comment,
         userId,
@@ -166,13 +167,13 @@ exports.createReview = async (req, res) => {
     );
 
     // Update order with reviewId and status
-    await Order.update(
+    await OrderItem.update(
       {
         reviewId: review.id,
         status: "reviewed",
       },
       {
-        where: { id: orderId },
+        where: { id: orderItemId },
         transaction,
       }
     );
@@ -191,6 +192,7 @@ exports.createReview = async (req, res) => {
     res.status(200).json({
       status: 200,
       message: "Review submitted successfully",
+      data: review,
     });
   } catch (error) {
     await transaction.rollback();

@@ -8,13 +8,13 @@ class ReviewApiService {
   static String baseUrl = AppConfig.customerAPI;
 
   // Submit review for an order
-  static Future<void> submitReview({
-    required int orderId,
+  static Future<CommonResponseModel> submitReview({
+    required int orderItemId,
     required double rating,
     required String comment,
   }) async {
     final body = {
-      'orderId': orderId,
+      'orderItemId': orderItemId,
       'rating': rating,
       'comment': comment,
     };
@@ -23,7 +23,7 @@ class ReviewApiService {
     final result = CommonResponseModel.fromMap(res);
 
     if (result.status == 200 || result.status == 201) {
-      return; // Success
+      return result; // Success
     } else {
       throw Exception("Failed to submit review: ${result.message}");
     }

@@ -21,7 +21,7 @@ const Review = sequelize.define(
       type: DataTypes.INTEGER,
       allowNull: false,
     },
-    orderId: {
+    orderItemId: {
       type: DataTypes.INTEGER,
       allowNull: false,
     },

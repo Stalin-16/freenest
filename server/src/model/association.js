@@ -27,8 +27,8 @@ User.hasMany(Order, { as: "orders", foreignKey: "user_id" });
 Order.hasMany(OrderItem, { foreignKey: "order_id" });
 OrderItem.belongsTo(Order, { foreignKey: "order_id" });
 
-Order.hasOne(Review, { foreignKey: "orderId", as: "reviewDetails" });
-Review.belongsTo(Order, { foreignKey: "orderId" });
+OrderItem.hasOne(Review, { foreignKey: "orderItemId", as: "reviewDetails" });
+Review.belongsTo(OrderItem, { foreignKey: "orderItemId" });
 
 // 🧩 ServiceProfile ↔ Order
 ServiceProfile.hasMany(OrderItem, { foreignKey: "profile_id", as: "orders" });

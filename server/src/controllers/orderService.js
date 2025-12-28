@@ -36,15 +36,14 @@ exports.getOrderDetails = async (req, res) => {
               as: "assignedUser",
               attributes: ["id", "name", "email", "overallRating"],
             },
+            {
+              model: Review,
+              as: "reviewDetails",
+              attributes: ["id", "rating", "comment"],
+            },
           ],
         },
-        {
-          model: Review,
-          as: "reviewDetails",
-          attributes: ["id", "rating", "comment"],
-        },
       ],
-
       order: [["created_at", "DESC"]],
     });
 
@@ -78,32 +77,27 @@ exports.getAllOrderDetailsForAdmin = async (req, res) => {
           model: OrderItem,
           include: [
             {
-              model: CartDetails,
-              include: [
-                {
-                  model: ServiceProfile,
-                  as: "profile",
-                  attributes: [
-                    "id",
-                    "serviceTitle",
-                    "hourlyRate",
-                    "serviceCategory",
-                    "profileImage",
-                  ],
-                },
-              ],
+              model: ServiceProfile,
+              as: "profile",
               attributes: [
                 "id",
-                "quantity",
-                "price_per_unit",
-                "total_price",
-                "cart_status",
+                "serviceTitle",
+                "hourlyRate",
+                "serviceSubCategoryId",
+                "serviceCategoryId",
+                "profileImage",
               ],
+            },
+            {
+              model: Review,
+              as: "reviewDetails",
+              attributes: ["id", "rating", "comment"],
             },
           ],
         },
         {
           model: User,
+          as: "user",
           attributes: ["id", "name", "email"],
         },
       ],
