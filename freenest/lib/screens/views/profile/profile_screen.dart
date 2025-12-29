@@ -25,8 +25,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   void initState() {
-    super.initState();
     _checkLoginStatus();
+    super.initState();
   }
 
   @override

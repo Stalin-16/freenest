@@ -124,6 +124,21 @@ class _WorkOrderDetailsScreenState extends State<WorkOrderDetailsScreen> {
                                     ? 20
                                     : 16),
                       ],
+                      ServiceProviderCard(
+                        serviceTitle: profile.serviceTitle,
+                        profileImage: profile.profileImage != null
+                            ? "${AppConfig.imageUrl}${profile.profileImage}"
+                            : "",
+                        viewDetails: false,
+                        experience: profile.experienceRange,
+                        rating: profile.overallRating ?? 0.0,
+                        workOrders:
+                            0, // You might want to pass actual work orders count
+                        price: currentItem!.price,
+                        showAddButton: false,
+                        onAddPressed: () {},
+                        isDark: isDark,
+                      ),
 
                       // Order Information Card
                       Card(
@@ -147,29 +162,6 @@ class _WorkOrderDetailsScreenState extends State<WorkOrderDetailsScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Service Provider Card
-                              ServiceProviderCard(
-                                serviceTitle: profile.serviceTitle,
-                                profileImage: profile.profileImage != null
-                                    ? "${AppConfig.imageUrl}${profile.profileImage}"
-                                    : "",
-                                viewDetails: false,
-                                experience: profile.experienceRange,
-                                rating: profile.overallRating ?? 0.0,
-                                workOrders:
-                                    0, // You might want to pass actual work orders count
-                                price: currentItem!.price,
-                                showAddButton: false,
-                                onAddPressed: () {},
-                                isDark: isDark,
-                              ),
-
-                              SizedBox(
-                                  height: isDesktop
-                                      ? 24
-                                      : isTablet
-                                          ? 20
-                                          : 16),
                               Row(
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,

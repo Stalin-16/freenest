@@ -102,16 +102,10 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   Widget _buildRatingStars(int? rating) {
-    if (rating == null) return Container();
-
-    return Row(
-      children: List.generate(5, (index) {
-        return Icon(
-          index < (rating ~/ 2) ? Icons.star : Icons.star_border,
-          size: 14,
-          color: Colors.amber,
-        );
-      }),
+    return const Icon(
+      Icons.star,
+      size: 14,
+      color: Colors.amber,
     );
   }
 
@@ -119,7 +113,7 @@ class _CartScreenState extends State<CartScreen> {
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final backgroundColor = isDarkMode ? Colors.black45 : Colors.white;
-    final textColor = isDarkMode ? Colors.white : Colors.black45;
+    final textColor = isDarkMode ? Colors.white : Colors.black;
     final cardColor = isDarkMode ? Colors.black45 : Colors.white;
     final borderColor = isDarkMode ? Colors.grey[800] : Colors.grey[300];
     final primaryColor = Colors.black45;
@@ -200,317 +194,333 @@ class _CartScreenState extends State<CartScreen> {
                       ),
                     ],
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.network(
-                            "${AppConfig.imageUrl}${item.imageUrl}",
-                            height: 80,
-                            width: 80,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
-                              height: 80,
-                              width: 80,
-                              decoration: BoxDecoration(
-                                color: isDarkMode
-                                    ? Colors.grey[800]
-                                    : Colors.grey[200],
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Icon(
-                                Icons.image_not_supported,
-                                size: 30,
-                                color: textColor.withOpacity(0.5),
+                  child: Stack(
+                    children: [
+                      // Main content
+                      Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(
+                                "${AppConfig.imageUrl}${item.imageUrl}",
+                                height: 80,
+                                width: 80,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => Container(
+                                  height: 80,
+                                  width: 80,
+                                  decoration: BoxDecoration(
+                                    color: isDarkMode
+                                        ? Colors.grey[800]
+                                        : Colors.grey[200],
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Icon(
+                                    Icons.image_not_supported,
+                                    size: 30,
+                                    color: textColor.withOpacity(0.5),
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                item.name,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                  color: textColor,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 4),
-
-                              // Experience and Rating Row (like in the image)
-                              Row(
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  if (item.experience != null) ...[
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 8, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: isDarkMode
-                                            ? Colors.grey[800]
-                                            : Colors.grey[100],
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      child: Text(
-                                        item.experience!,
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: textColor,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                  ],
-                                  if (item.rating != null) ...[
-                                    _buildRatingStars(item.rating),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      '${item.rating!.toDouble() / 2}',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: textColor.withOpacity(0.7),
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-
-                              const SizedBox(height: 4),
-
-                              // Work Order Count (like in the image)
-                              if (item.workOrderCount != null)
-                                Text(
-                                  '${item.workOrderCount} Work Orders',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: textColor.withOpacity(0.7),
-                                  ),
-                                ),
-
-                              const SizedBox(height: 8),
-
-                              // Price and Quantity Controls
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    '₹${item.hourlyRate.toStringAsFixed(2)}/hr',
-                                    style: TextStyle(
-                                      color: primaryColor,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 16,
-                                    ),
-                                  ),
+                                  // Title row with delete button aligned to the right
                                   Row(
-                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      IconButton(
-                                        icon: Icon(
-                                          Icons.remove_circle_outline,
-                                          color: primaryColor,
-                                        ),
-                                        onPressed: () => _updateQuantity(
-                                          index,
-                                          item.quantity - 1,
-                                        ),
-                                        padding: EdgeInsets.zero,
-                                        constraints: const BoxConstraints(),
-                                      ),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: isDarkMode
-                                              ? Colors.grey[800]
-                                              : Colors.grey[100],
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                        ),
+                                      Expanded(
                                         child: Text(
-                                          '${item.quantity}',
+                                          item.name,
                                           style: TextStyle(
+                                            fontWeight: FontWeight.bold,
                                             fontSize: 16,
-                                            fontWeight: FontWeight.w500,
                                             color: textColor,
                                           ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
-                                      IconButton(
-                                        icon: Icon(
-                                          Icons.add_circle_outline,
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+
+                                  // Experience and Rating Row
+                                  Row(
+                                    children: [
+                                      if (item.experience != null) ...[
+                                        Text(
+                                          "${item.experience!} years",
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: textColor,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                      ],
+                                      if (item.rating != null) ...[
+                                        Row(
+                                          children: [
+                                            _buildRatingStars(item.rating),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              '${item.rating!.toDouble() / 2}',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color:
+                                                    textColor.withOpacity(0.7),
+                                              ),
+                                            ),
+                                            if (item.workOrderCount != null)
+                                              Text(
+                                                '(${item.workOrderCount} Work Orders)',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: textColor
+                                                      .withOpacity(0.7),
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                  // Price and Quantity Controls Row
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        '₹${item.hourlyRate.toStringAsFixed(2)}/hr',
+                                        style: TextStyle(
                                           color: primaryColor,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 16,
                                         ),
-                                        onPressed: () => _updateQuantity(
-                                          index,
-                                          item.quantity + 1,
-                                        ),
-                                        padding: EdgeInsets.zero,
-                                        constraints: const BoxConstraints(),
                                       ),
-                                      const SizedBox(width: 8),
-                                      IconButton(
-                                        icon: Icon(
-                                          Icons.delete_outline,
-                                          color: errorColor,
-                                        ),
-                                        onPressed: () => _removeItem(item.id),
-                                        padding: EdgeInsets.zero,
-                                        constraints: const BoxConstraints(),
+
+                                      // Quantity Controls
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          IconButton(
+                                            icon: Icon(
+                                              Icons.remove_circle_outline,
+                                              color: primaryColor,
+                                              size: 24,
+                                            ),
+                                            onPressed: () => _updateQuantity(
+                                              index,
+                                              item.quantity - 1,
+                                            ),
+                                            padding: EdgeInsets.zero,
+                                            constraints: const BoxConstraints(),
+                                          ),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 4,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: isDarkMode
+                                                  ? Colors.grey[800]
+                                                  : Colors.grey[100],
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                            child: Text(
+                                              '${item.quantity}',
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w500,
+                                                color: textColor,
+                                              ),
+                                            ),
+                                          ),
+                                          IconButton(
+                                            icon: Icon(
+                                              Icons.add_circle_outline,
+                                              color: primaryColor,
+                                              size: 24,
+                                            ),
+                                            onPressed: () => _updateQuantity(
+                                              index,
+                                              item.quantity + 1,
+                                            ),
+                                            padding: EdgeInsets.zero,
+                                            constraints: const BoxConstraints(),
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ),
                                 ],
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+
+                      // Delete button positioned at top-right
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            color: errorColor,
+                            size: 24,
+                          ),
+                          onPressed: () => _removeItem(item.id),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ),
+                    ],
                   ),
                 );
               },
             ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: cardColor,
-          border: Border(
-            top: BorderSide(
-              color: borderColor!,
-              width: 1,
-            ),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 8,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    "Subtotal",
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: textColor.withOpacity(0.7),
-                    ),
+      // Move the bottomNavigationBar here, inside the Scaffold
+      bottomNavigationBar: cart.isEmpty
+          ? null // No bottom bar when cart is empty
+          : Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: cardColor,
+                border: Border(
+                  top: BorderSide(
+                    color: borderColor!,
+                    width: 1,
                   ),
-                  Text(
-                    "₹ ${total.toStringAsFixed(2)}",
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                      color: textColor,
-                    ),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, -2),
                   ),
                 ],
               ),
-              const SizedBox(height: 4),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    "Total Items",
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: textColor.withOpacity(0.7),
-                    ),
-                  ),
-                  Text(
-                    "${cart.length} items",
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: textColor.withOpacity(0.7),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              child: SafeArea(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          "Total Amount",
+                          "Subtotal",
                           style: TextStyle(
                             fontSize: 14,
                             color: textColor.withOpacity(0.7),
                           ),
                         ),
-                        const SizedBox(height: 4),
                         Text(
                           "₹ ${total.toStringAsFixed(2)}",
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            fontSize: 24,
-                            color: primaryColor,
+                            fontSize: 18,
+                            color: textColor,
                           ),
                         ),
                       ],
                     ),
-                  ),
-                  SizedBox(
-                    width: 180,
-                    child: ElevatedButton(
-                      onPressed: _proceedToCheckout,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 16,
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          "Total Items",
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: textColor.withOpacity(0.7),
+                          ),
                         ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                        Text(
+                          "${cart.length} items",
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: textColor.withOpacity(0.7),
+                          ),
                         ),
-                        backgroundColor: primaryColor,
-                        foregroundColor: Colors.white,
-                        elevation: 2,
-                      ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Checkout',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "Total Amount",
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: textColor.withOpacity(0.7),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                "₹ ${total.toStringAsFixed(2)}",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 24,
+                                  color: primaryColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(
+                          width: 180,
+                          child: ElevatedButton(
+                            onPressed: _proceedToCheckout,
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 16,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              backgroundColor: primaryColor,
+                              foregroundColor: Colors.white,
+                              elevation: 2,
+                            ),
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'Checkout',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                SizedBox(width: 8),
+                                Icon(Icons.arrow_forward, size: 20),
+                              ],
                             ),
                           ),
-                          SizedBox(width: 8),
-                          Icon(Icons.arrow_forward, size: 20),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ],
-          ),
-        ),
-      ),
+            ),
     );
   }
 }

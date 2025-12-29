@@ -200,27 +200,14 @@ class _OrderScreenState extends State<OrderScreen> {
                   children: [
                     Row(
                       children: [
-                        Text(
-                          profile.serviceTitle,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.primary.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
+                        Expanded(
                           child: Text(
-                            'Order #${order.id}',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: theme.colorScheme.primary,
+                            profile.serviceTitle,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
                             ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
                           ),
                         ),
                       ],
@@ -229,39 +216,46 @@ class _OrderScreenState extends State<OrderScreen> {
                     Text(
                       '${profile.experienceRange} Years Experience',
                       style: theme.textTheme.bodySmall,
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
                     ),
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        Text(
-                          '${orderItem.quantity} Hrs',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '×',
-                          style: theme.textTheme.bodySmall,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '₹${orderItem.price.toStringAsFixed(2)}',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '=',
-                          style: theme.textTheme.bodySmall,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '₹${orderItem.totalPrice.toStringAsFixed(2)}',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: theme.colorScheme.primary,
+                        Expanded(
+                          child: Wrap(
+                            spacing: 4,
+                            runSpacing: 2,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              Text(
+                                '${orderItem.quantity} Hrs',
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              Text(
+                                '×',
+                                style: theme.textTheme.bodySmall,
+                              ),
+                              Text(
+                                '₹${orderItem.price.toStringAsFixed(2)}',
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              Text(
+                                '=',
+                                style: theme.textTheme.bodySmall,
+                              ),
+                              Text(
+                                '₹${orderItem.totalPrice.toStringAsFixed(2)}',
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
@@ -270,16 +264,19 @@ class _OrderScreenState extends State<OrderScreen> {
                 ),
               ),
 
-              /// RIGHT SIDE
+              const SizedBox(width: 8),
+
+              /// RIGHT SIDE - Compact version
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
                     _formatDate(orderItem.createdAt),
-                    style: theme.textTheme.bodySmall,
+                    style: theme.textTheme.bodySmall?.copyWith(fontSize: 11),
+                    textAlign: TextAlign.end,
                   ),
-                  const SizedBox(height: 8),
-                  _itemStatusWidget(orderItem),
+                  const SizedBox(height: 6),
+                  _itemStatusWidget(orderItem, theme, isDark),
                 ],
               ),
             ],
@@ -289,10 +286,8 @@ class _OrderScreenState extends State<OrderScreen> {
     );
   }
 
-  /// ---------------- STATUS WIDGET ----------------
-  Widget _itemStatusWidget(OrderItem orderItem) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
+  /// ---------------- COMPACT STATUS WIDGET ----------------
+  Widget _itemStatusWidget(OrderItem orderItem, ThemeData theme, bool isDark) {
     // Define your status colors map
     Map<String, Color> statusColors = {
       "getting ready": Colors.blue,
@@ -304,7 +299,7 @@ class _OrderScreenState extends State<OrderScreen> {
 
     // Define status labels (optional - for display text)
     Map<String, String> statusLabels = {
-      "order placed": "Order Placed",
+      "order placed": "Placed",
       "getting ready": "Getting Ready",
       "in progress": "In Progress",
       "completed": "Completed",
@@ -317,16 +312,17 @@ class _OrderScreenState extends State<OrderScreen> {
     // Special case for completed with review
     if (statusKey == "completed" && orderItem.hasReview) {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: Colors.grey.withOpacity(0.15),
-          borderRadius: BorderRadius.circular(10),
+          color: Colors.grey.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: Colors.grey.withOpacity(0.3), width: 0.5),
         ),
-        child: const Text(
+        child: Text(
           "Rated⭐",
           style: TextStyle(
             color: Colors.grey,
-            fontSize: 12,
+            fontSize: 10,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -335,39 +331,30 @@ class _OrderScreenState extends State<OrderScreen> {
 
     // Special case for completed without review
     if (statusKey == "completed" && !orderItem.hasReview) {
-      return ElevatedButton(
-        onPressed: () {
-          // Create a temporary order with just this item for details screen
-          final tempOrder = OrderModel(
-            id: orderItem.orderId,
-            userId: 0, // You'll need to get this from order
-            baseAmount: orderItem.totalPrice,
-            gstAmount: 0,
-            totalAmount: orderItem.totalPrice,
-            createdAt: orderItem.createdAt,
-            updatedAt: orderItem.createdAt,
-            orderItems: [orderItem],
-          );
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => WorkOrderDetailsScreen(order: tempOrder),
-            ),
-          );
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: isDark ? Colors.white : Colors.black45,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.orange.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: Colors.orange.withOpacity(0.3), width: 0.5),
         ),
-        child: Text(
-          "Rate Now ⭐",
-          style: TextStyle(
-            fontSize: 12,
-            color: !isDark ? Colors.white : Colors.black,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              "Rate",
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: Colors.orange,
+              ),
+            ),
+            const SizedBox(width: 2),
+            Text(
+              "⭐",
+              style: TextStyle(fontSize: 8),
+            ),
+          ],
         ),
       );
     }
@@ -376,26 +363,38 @@ class _OrderScreenState extends State<OrderScreen> {
     Color textColor = statusColors[statusKey] ?? Colors.grey;
 
     // Create background color from text color with opacity
-    Color bgColor = textColor.withOpacity(isDark ? 0.2 : 0.1);
+    Color bgColor = textColor.withOpacity(isDark ? 0.15 : 0.08);
 
     // For default/grey status
     if (!statusColors.containsKey(statusKey)) {
       bgColor = isDark ? Colors.grey.shade800 : Colors.grey.shade100;
     }
 
+    // Make label shorter for mobile
+    String compactLabel = label;
+    if (label.length > 10) {
+      // Shorten long status labels
+      if (label.toLowerCase().contains("getting ready")) compactLabel = "Ready";
+      if (label.toLowerCase().contains("in progress"))
+        compactLabel = "Progress";
+    }
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: textColor.withOpacity(0.3), width: 0.5),
       ),
       child: Text(
-        label,
+        compactLabel,
         style: TextStyle(
           color: textColor,
-          fontSize: 12,
+          fontSize: 10,
           fontWeight: FontWeight.w600,
         ),
+        overflow: TextOverflow.ellipsis,
+        maxLines: 1,
       ),
     );
   }
