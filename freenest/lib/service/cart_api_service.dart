@@ -28,7 +28,7 @@ class CartApiService {
   static Future<List<CartItemModel>> getCart() async {
     final response = await _api.get("$baseUrl/cart/get");
 
-    // print("@@ Cart API Response: $response");
+    print("@@ Cart API Response: $response");
 
     final result = CommonResponseModel.fromMap(response);
 

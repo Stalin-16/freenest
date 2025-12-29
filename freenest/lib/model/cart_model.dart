@@ -21,27 +21,35 @@ class CartItemModel {
   factory CartItemModel.fromMap(Map<String, dynamic> map) {
     final profile = map['profile'] ?? {};
 
-    double parseDouble(dynamic value) {
-      if (value == null) return 0.0;
-      if (value is double) return value;
-      if (value is int) return value.toDouble();
-      if (value is String) return double.tryParse(value) ?? 0.0;
-      return 0.0;
+    // Handle hourlyRate with explicit type checking
+    dynamic priceValue = map['price_per_unit'];
+    double hourlyRate = 0.0;
+
+    if (priceValue != null) {
+      if (priceValue is int) {
+        hourlyRate = priceValue.toDouble();
+      } else if (priceValue is double) {
+        hourlyRate = priceValue;
+      } else if (priceValue is String) {
+        hourlyRate = double.tryParse(priceValue) ?? 0.0;
+      } else {
+        hourlyRate = 0.0;
+      }
     }
 
     return CartItemModel(
       id: map['id']?.toString() ?? '',
       name: map['name'] ?? profile['serviceTitle'] ?? '',
-      quantity: map['quantity'] ?? 1,
-      hourlyRate: parseDouble(map['price_per_unit']),
+      quantity: map['quantity'] is int ? map['quantity'] as int : 1,
+      hourlyRate: hourlyRate,
       imageUrl: map['imageUrl'] ?? profile['profileImage'] ?? '',
       experience: profile['experienceRange']?.toString(),
-      rating: profile['overallRating'] != null
-          ? int.tryParse(profile['overallRating'].toString())
-          : null,
-      workOrderCount: profile['orderCount'] != null
-          ? int.tryParse(profile['orderCount'].toString())
-          : null,
+      rating: profile['overallRating'] is int
+          ? profile['overallRating'] as int
+          : int.tryParse(profile['overallRating'].toString()),
+      workOrderCount: profile['orderCount'] is int
+          ? profile['orderCount'] as int
+          : int.tryParse(profile['orderCount'].toString()),
     );
   }
 

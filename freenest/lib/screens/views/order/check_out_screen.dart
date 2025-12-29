@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:freenest/config/app_config.dart';
 import 'package:freenest/constants/ui_screen_routes.dart';
@@ -66,19 +65,21 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   Future<void> _loadCart() async {
     UserModel? user = await SharedService.getUser();
+    print(user);
     setState(() => isLoading = true);
 
     try {
       List<CartItemModel> loadedCart = [];
       if (user != null) {
         loadedCart = await CartApiService.getCart();
+        print(loadedCart);
       }
       setState(() {
         cart = loadedCart.map((e) {
           final map = e.toMap();
           // Round cart item values
-          map['hourlyRate'] = roundTo2(map['hourlyRate']);
-          map['quantity'] = roundTo2(map['quantity']);
+          map['hourlyRate'] = map['hourlyRate'];
+          map['quantity'] = map['quantity'];
           return map;
         }).toList();
         isLoading = false;
