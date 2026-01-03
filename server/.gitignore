@@ -9,3 +9,6 @@
 # production
 /build
 /uploads
+
+.json
+/src/controllers/
