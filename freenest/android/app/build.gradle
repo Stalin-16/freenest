@@ -44,7 +44,7 @@ android {
     defaultConfig {
         multiDexEnabled true
         applicationId "com.free.nest"
-        minSdkVersion flutter.minSdkVersion
+        minSdkVersion 25
         targetSdkVersion flutter.targetSdkVersion
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
@@ -64,4 +64,5 @@ flutter {
 }
 
 dependencies {
+    implementation platform('com.google.firebase:firebase-bom:32.7.4')
 }

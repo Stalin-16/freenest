@@ -6,6 +6,7 @@ import 'package:freenest/screens/views/order/order_screen.dart';
 import 'package:freenest/screens/views/profile/profile_screen.dart';
 import 'package:freenest/service/cart_api_service.dart';
 import 'package:freenest/service/cart_service.dart';
+import 'package:freenest/service/notification_service.dart';
 import 'package:freenest/service/shared_service.dart';
 
 class HomePage extends StatefulWidget {
@@ -27,6 +28,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    NotificationService.initialize();
     WidgetsBinding.instance.addObserver(this);
     _screens.addAll([
       const HomeScreen(),

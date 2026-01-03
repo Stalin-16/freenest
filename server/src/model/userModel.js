@@ -52,6 +52,7 @@ const User = sequelize.define(
     otp: { type: DataTypes.STRING, allowNull: true },
     experience: { type: DataTypes.STRING, allowNull: true },
     hourlyRate: { type: DataTypes.FLOAT, allowNull: true },
+    deviceToken: { type: DataTypes.STRING, allowNull: true },
     //Otp Expires
     otpExpires: { type: DataTypes.DATE, allowNull: true },
     overallRating: { type: DataTypes.INTEGER, default: 0 },

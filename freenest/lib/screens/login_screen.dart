@@ -6,8 +6,6 @@ import 'package:freenest/model/user_model.dart';
 import 'package:freenest/service/cart_api_service.dart';
 import 'package:freenest/service/cart_service.dart';
 import 'package:freenest/service/shared_service.dart';
-import 'package:google_sign_in/google_sign_in.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:freenest/service/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -21,7 +19,6 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final emailCtrl = TextEditingController();
   final otpCtrl = TextEditingController();
-  final _googleSignIn = GoogleSignIn();
   bool otpSent = false;
   bool isLoading = false;
   final AuthService auth = AuthService();
@@ -137,47 +134,6 @@ class _LoginScreenState extends State<LoginScreen> {
       print('Error: $e'); // Add error logging
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: ${e.toString()}')),
-      );
-    } finally {
-      setState(() => isLoading = false);
-    }
-  }
-
-  Future<void> handleGoogleLogin() async {
-    setState(() => isLoading = true);
-
-    try {
-      // _googleSignIn.disconnect();
-      final googleUser =
-          await _googleSignIn.signInSilently() ?? await _googleSignIn.signIn();
-
-      if (googleUser == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Google Sign-in canceled')),
-        );
-        return;
-      }
-
-      final res = await auth.googleLogin(
-        googleUser.email,
-        googleUser.id,
-        googleUser.displayName,
-      );
-      TokenModel tokenModel = TokenModel.fromMap(res.data);
-      await SharedService.setToken(tokenModel);
-      final user = UserModel.fromMap(res.data['user']);
-      await SharedService.setUser(user);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Google Login Success')),
-      );
-      await syncCart();
-
-      if (Navigator.canPop(context)) Navigator.pop(context);
-    } catch (e) {
-      _googleSignIn.disconnect();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Login failed')),
       );
     } finally {
       setState(() => isLoading = false);

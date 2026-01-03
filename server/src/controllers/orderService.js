@@ -1,9 +1,11 @@
+const { or } = require("sequelize");
 const ServiceProfile = require("../model/admin/serviceProfile");
 const CartDetails = require("../model/cartDetails");
 const Order = require("../model/order");
 const OrderItem = require("../model/orderItem");
 const Review = require("../model/review");
 const User = require("../model/userModel");
+const { sendToDevice } = require("./notificationService");
 
 exports.getOrderDetails = async (req, res) => {
   try {
@@ -196,8 +198,6 @@ exports.updateOrderStatus = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    console.log(id, status);
-
     const allowedStatuses = ["Assigned", "Inprogress", "Completed"];
     if (!allowedStatuses.includes(status)) {
       return res.status(400).json({ status: 400, message: "Invalid status" });
@@ -211,9 +211,23 @@ exports.updateOrderStatus = async (req, res) => {
     order.status = status;
     await order.save();
 
-    return res.json({
+    const user = await User.findByPk(order.user_id);
+    if (!user) {
+      return res
+        .status(404)
+        .json({ status: 404, message: "User not found for this order" });
+    }
+
+    await sendToDevice(
+      user.deviceToken,
+      "Order Status Updated",
+      "Your order id " + order.id + " has been updated to " + status
+    );
+
+    return res.status(200).json({
       status: 200,
       message: "Order status updated successfully",
+      data: order,
     });
   } catch (error) {
     console.error("Error updating order status:", error);

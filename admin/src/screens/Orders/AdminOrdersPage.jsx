@@ -29,22 +29,20 @@ const AdminOrdersPage = () => {
   const handleStatusChange = async (orderId, newStatus) => {
     try {
       setUpdating(orderId);
-      const res = await axios.put(
-        `${API_BASE_URL}/order/update-status/${orderId}`,
-        {
-          status: newStatus,
-        }
-      );
+      const data = {
+        status: newStatus,
+      };
+      const res = await OrderService.changeOrderStatus(orderId, data);
 
-      if (res.data.status === 200) {
-        alert("Order status updated successfully!");
-        fetchOrders();
+      if (res.status === 200) {
+        // alert("Order status updated successfully!");
+        // fetchOrders();
       } else {
         alert(res.data.message || "Failed to update status");
       }
     } catch (err) {
       console.error(err);
-      alert("Error updating status");
+      // alert("Error updating status");
     } finally {
       setUpdating(null);
     }

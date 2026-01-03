@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "944609092425",
-    "project_id": "freenest-33790",
-    "storage_bucket": "freenest-33790.firebasestorage.app"
+    "project_number": "677166933316",
+    "project_id": "chennai-freelancer",
+    "storage_bucket": "chennai-freelancer.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:944609092425:android:ee4b059536a69dd28df098",
+        "mobilesdk_app_id": "1:677166933316:android:d702eed79dc3cdf9166311",
         "android_client_info": {
           "package_name": "com.free.nest"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBkgNL_Vx0JV_Rg9rNzPrbAbmP2Yyu1sUw"
+          "current_key": "AIzaSyD0CmKQ_ZjmDCbSoCKbbheXhfu3IVSraF8"
         }
       ],
       "services": {
